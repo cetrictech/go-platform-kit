@@ -1,0 +1,21 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/cache/redis
+cpu: Apple M3 Pro
+BenchmarkRedisRoundTrip-11    	     100	    387894 ns/op	     248 B/op	       8 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.491s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/messaging/kafka/franz
+cpu: Apple M3 Pro
+BenchmarkPublishRoundTrip-11    	     100	    836515 ns/op	    4372 B/op	      45 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.764s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/messaging/kafka/sarama
+cpu: Apple M3 Pro
+BenchmarkPublishRoundTrip-11    	     100	    516510 ns/op	    6425 B/op	      78 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.727s

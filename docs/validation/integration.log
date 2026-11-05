@@ -1,0 +1,56 @@
+=== RUN   TestIntegrationTransactions
+--- PASS: TestIntegrationTransactions (0.04s)
+=== RUN   TestIntegrationKeysetBatchOutbox
+--- PASS: TestIntegrationKeysetBatchOutbox (0.03s)
+=== RUN   TestInvalid
+--- PASS: TestInvalid (0.00s)
+PASS
+coverage: 47.6% of statements
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	1.441s	coverage: 47.6% of statements
+=== RUN   TestIntegrationTransactions
+--- PASS: TestIntegrationTransactions (0.05s)
+=== RUN   TestInvalid
+--- PASS: TestInvalid (0.00s)
+=== RUN   TestIntegrationKeysetBatchOutbox
+--- PASS: TestIntegrationKeysetBatchOutbox (0.10s)
+PASS
+coverage: 62.5% of statements
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	1.455s	coverage: 62.5% of statements
+=== RUN   TestIntegrationAtomic
+--- PASS: TestIntegrationAtomic (0.02s)
+=== RUN   TestInvalid
+--- PASS: TestInvalid (0.00s)
+PASS
+coverage: 28.6% of statements
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	1.463s	coverage: 28.6% of statements
+=== RUN   TestInvalid
+--- PASS: TestInvalid (0.00s)
+=== RUN   TestOptions
+--- PASS: TestOptions (0.00s)
+=== RUN   TestIntegrationDelivery
+--- PASS: TestIntegrationDelivery (2.28s)
+PASS
+coverage: 64.3% of statements
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	3.631s	coverage: 64.3% of statements
+=== RUN   TestIntegrationDelivery
+--- PASS: TestIntegrationDelivery (2.75s)
+=== RUN   TestInvalid
+--- PASS: TestInvalid (0.00s)
+=== RUN   TestConfig
+--- PASS: TestConfig (0.00s)
+PASS
+coverage: 58.4% of statements
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	4.084s	coverage: 58.4% of statements
+=== RUN   TestCrossAdapterOffsets
+=== RUN   TestCrossAdapterOffsets/franz-to-franz
+=== RUN   TestCrossAdapterOffsets/franz-to-sarama
+=== RUN   TestCrossAdapterOffsets/sarama-to-franz
+=== RUN   TestCrossAdapterOffsets/sarama-to-sarama
+--- PASS: TestCrossAdapterOffsets (3.54s)
+    --- PASS: TestCrossAdapterOffsets/franz-to-franz (0.32s)
+    --- PASS: TestCrossAdapterOffsets/franz-to-sarama (1.49s)
+    --- PASS: TestCrossAdapterOffsets/sarama-to-franz (0.26s)
+    --- PASS: TestCrossAdapterOffsets/sarama-to-sarama (1.47s)
+PASS
+coverage: [no statements]
+ok  	github.com/cetrictech/go-platform-kit/integration	4.924s	coverage: [no statements]

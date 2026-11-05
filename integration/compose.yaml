@@ -1,0 +1,36 @@
+name: go-platform-kit-tests
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: sdk-test-only
+      POSTGRES_DB: sdk
+    ports: ["127.0.0.1:15432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sdk"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: sdk-test-only
+      MYSQL_DATABASE: sdk
+    ports: ["127.0.0.1:13306:3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-psdk-test-only"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  redis:
+    image: redis:8
+    ports: ["127.0.0.1:16379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.3.1
+    command: ["redpanda", "start", "--overprovisioned", "--smp", "1", "--memory", "512M", "--reserve-memory", "0M", "--node-id", "0", "--check=false", "--kafka-addr", "internal://0.0.0.0:9092,external://0.0.0.0:19092", "--advertise-kafka-addr", "internal://redpanda:9092,external://127.0.0.1:19092"]
+    ports: ["127.0.0.1:19092:19092"]

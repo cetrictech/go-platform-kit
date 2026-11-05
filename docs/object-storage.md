@@ -1,0 +1,3 @@
+# Optional object storage design
+
+No cloud SDK is included in core. A future independently versioned storage/s3 module should own the cloud client and implement streaming Put/Get/Delete/Head, multipart upload with cancellation and abort cleanup, checksums, metadata, content type and bounded presigned URL expiration. Credentials must come from a standard provider chain or explicit injected provider, never globals hidden by the SDK. The caller owns returned readers. Authenticated transport, encryption policy, bucket authorization and retention remain explicit. This is a design only; no object-storage API is advertised as implemented.

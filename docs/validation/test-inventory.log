@@ -1,0 +1,97 @@
+Module: .
+TestManual
+ok  	github.com/cetrictech/go-platform-kit/clock	0.197s
+TestLoadAtomic
+TestRequired
+TestProgrammaticSecretAndPointers
+TestDumpMapSecrets
+ok  	github.com/cetrictech/go-platform-kit/config	0.211s
+TestScan
+ok  	github.com/cetrictech/go-platform-kit/database	0.227s
+TestLimits
+ok  	github.com/cetrictech/go-platform-kit/encodingx	0.233s
+TestSafeAndWrap
+TestRecovery
+TestNoRows
+ok  	github.com/cetrictech/go-platform-kit/errors	0.198s
+TestHealth
+ok  	github.com/cetrictech/go-platform-kit/health	0.171s
+TestJSON
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.194s
+TestSecurity
+TestCompression
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.422s
+TestUUID
+ok  	github.com/cetrictech/go-platform-kit/id	0.152s
+TestConcurrent
+TestExpiredLeaseOwnership
+ok  	github.com/cetrictech/go-platform-kit/idempotency	0.166s
+TestNoop
+ok  	github.com/cetrictech/go-platform-kit/instrument	0.134s
+?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
+TestRollback
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.132s
+TestRedaction
+ok  	github.com/cetrictech/go-platform-kit/logger	0.152s
+TestRecovery
+TestAcknowledgment
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	0.148s
+TestInsert
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.155s
+TestCursor
+TestOffset
+ok  	github.com/cetrictech/go-platform-kit/pagination	0.163s
+TestAtomic
+TestTinyRate
+TestEvictionCannotResetBudget
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.157s
+TestOpen
+TestHalfOpen
+ok  	github.com/cetrictech/go-platform-kit/resilience	0.131s
+TestAtomic
+TestDebugHidden
+TestDebugAuthorization
+TestRetryAfterDoesNotOverflow
+ok  	github.com/cetrictech/go-platform-kit/response	0.439s
+TestAttempts
+ok  	github.com/cetrictech/go-platform-kit/retry	0.131s
+TestCrypto
+ok  	github.com/cetrictech/go-platform-kit/security	0.142s
+TestStruct
+TestNil
+TestHTTPDecode
+ok  	github.com/cetrictech/go-platform-kit/validation	0.178s
+TestDrain
+ok  	github.com/cetrictech/go-platform-kit/worker	0.145s
+Module: database/postgres
+TestInvalid
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.245s
+Module: database/mysql
+TestInvalid
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.310s
+Module: cache/redis
+TestInvalid
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	1.107s
+Module: messaging/kafka/franz
+TestInvalid
+TestOptions
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.253s
+Module: messaging/kafka/sarama
+TestInvalid
+TestConfig
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.244s
+Module: grpcx
+TestDefaultsAndHealth
+TestCustomTLSVerifier
+TestMutualTLS
+ok  	github.com/cetrictech/go-platform-kit/grpcx	0.293s
+Module: spiffe
+TestWorkloadTLSAndRotation
+TestRejectPolicy
+ok  	github.com/cetrictech/go-platform-kit/spiffe	0.277s
+Module: observability
+TestGRPCPropagation
+TestProviders
+ok  	github.com/cetrictech/go-platform-kit/observability	0.364s
+Module: integration
+?   	github.com/cetrictech/go-platform-kit/integration	[no test files]

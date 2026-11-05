@@ -1,0 +1,7 @@
+# Retry and resilience
+
+retry.Do requires MaxAttempts >= 1. Retrying requires both Idempotent=true and a Retryable predicate; otherwise the first failure is returned. Configure fixed Delay or Exponential, MaxDelay, Jitter, MaxElapsed and OnRetry. Full jitter uses a non-cryptographic random delay; it is not a security token. Context cancellation interrupts waits. Clock supports deterministic delay tests. MaxElapsed also imposes a real context deadline; operation callbacks must honor it.
+
+Circuit breakers need a positive failure threshold, recovery interval and half-open probe limit. Optional FailureRate uses cumulative counts in the current closed generation, gated by MinimumRequests. Generation changes discard stale in-flight results. Failure can classify errors; OnChange runs outside the lock and must be concurrency safe. Metrics are accessible through Stats. Half-open success probes close the breaker only after the configured number succeeds. Bulkhead bounds concurrent execution and supports cancellable waiting.
+
+Memory rate limiting uses token buckets with an explicit finite key capacity and idle TTL. Capacity exhaustion fails closed through middleware. Redis Limiter uses a different atomic fixed-window algorithm: it can permit boundary bursts across consecutive windows. HTTP middleware returns Retry-After and RateLimit metadata. gRPC policy can use Limiter.Allow in an authorization/interceptor hook.

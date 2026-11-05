@@ -1,0 +1,11 @@
+# IBM Sarama adapter
+
+NewProducer enables acknowledged delivery reports, WaitForAll, idempotent production and one in-flight request by default. One owned dispatcher drains successes/errors. Publish waits for the corresponding result; cancellation after enqueue does not retract a message. Flush waits until current queued messages have delivery outcomes; exclude concurrent publishes when using Flush as a shutdown barrier. Close drains the driver and dispatcher.
+
+Config.TLS enables verified transport. NativeConfig is an explicit advanced escape hatch for SASL, compression, partitioners, batching, OAuth and version settings. Required delivery channels and manual consumer offsets are enforced. Native configuration maps/pointers must remain immutable after construction. Administrative calls check context before entering Sarama but cannot interrupt every underlying synchronous admin API; configure native network timeouts.
+
+Consumers default to earliest for a new group, use one worker per assigned partition, and mark/commit after successful handling. Commit errors arrive through Sarama's consumer-group error channel, rather than Commit returning an error. Handler/group errors stop the consume loop. Rebalance cancellation propagates through the session context. Pause/Resume affect all assigned partitions. Handler concurrency is bounded across claims while preserving partition order.
+
+Verified TLS is required by default. `AllowPlaintext: true` is an explicit opt-in for isolated development/test infrastructure; it does not disable validation of a supplied TLS configuration. A custom certificate verifier, including go-spiffe verification, is supported.
+
+Workers defaults to 8 and accepts up to 256; a shared admission semaphore limits active handlers across partition claims without blocking idle partitions from releasing capacity. ManualPartition=true honors Message.Partition. SASL, Username and Password configure PLAIN or SCRAM-SHA-256/512 using a maintained SCRAM implementation. TLS is required for these mechanisms. PublishAsync queues a message and reports metadata through a dispatcher callback; callbacks must not block or call Close. PublishWithDelivery waits for the same outcome synchronously. Linger, BatchMessages and MaxMessageBytes configure producer batching.

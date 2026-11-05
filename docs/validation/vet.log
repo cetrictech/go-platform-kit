@@ -1,0 +1,10 @@
+Module: .
+Module: database/postgres
+Module: database/mysql
+Module: cache/redis
+Module: messaging/kafka/franz
+Module: messaging/kafka/sarama
+Module: grpcx
+Module: spiffe
+Module: observability
+Module: integration

@@ -1,0 +1,109 @@
+Module: .
+PASS
+ok  	github.com/cetrictech/go-platform-kit/clock	0.244s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/config	0.342s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/database
+cpu: Apple M3 Pro
+BenchmarkStructScanning-11    	 7379505	       157.9 ns/op	      56 B/op	       5 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/database	1.404s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/encodingx
+cpu: Apple M3 Pro
+BenchmarkJSON-11    	 3289831	       388.9 ns/op	      72 B/op	       5 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/encodingx	1.576s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/errors
+cpu: Apple M3 Pro
+BenchmarkConstruction-11    	29757106	        41.57 ns/op	     176 B/op	       1 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/errors	1.508s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/health	0.281s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.294s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.375s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/id	0.254s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/idempotency	0.369s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/instrument	0.267s
+?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
+PASS
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.248s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/logger
+cpu: Apple M3 Pro
+BenchmarkJSON-11    	  837945	      1428 ns/op	      72 B/op	       6 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/logger	1.539s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/messaging/kafka
+cpu: Apple M3 Pro
+BenchmarkConsumerProcessing-11    	102876952	        11.69 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	1.457s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.254s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/pagination
+cpu: Apple M3 Pro
+BenchmarkCursor-11    	 1025185	      1198 ns/op	    1296 B/op	      14 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/pagination	1.510s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.299s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/resilience	0.239s
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/response
+cpu: Apple M3 Pro
+BenchmarkSerialization-11    	  884311	      1234 ns/op	    1544 B/op	      17 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/response	1.480s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/retry	0.273s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/security	0.450s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/validation	0.314s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/worker	0.265s
+Module: database/postgres
+PASS
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.368s
+Module: database/mysql
+PASS
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.295s
+Module: cache/redis
+PASS
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.437s
+Module: messaging/kafka/franz
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.349s
+Module: messaging/kafka/sarama
+PASS
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.328s
+Module: grpcx
+PASS
+ok  	github.com/cetrictech/go-platform-kit/grpcx	0.494s
+Module: spiffe
+PASS
+ok  	github.com/cetrictech/go-platform-kit/spiffe	0.391s
+Module: observability
+PASS
+ok  	github.com/cetrictech/go-platform-kit/observability	0.508s
+Module: integration
+?   	github.com/cetrictech/go-platform-kit/integration	[no test files]
