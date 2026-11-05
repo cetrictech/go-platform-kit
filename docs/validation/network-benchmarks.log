@@ -1,21 +1,32 @@
 goos: darwin
 goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/integration
+cpu: Apple M3 Pro
+BenchmarkPostgresQuery-11               	     100	    393507 ns/op	    1323 B/op	      18 allocs/op
+BenchmarkKafkaAcknowledgedPublish-11    	     100	    843689 ns/op	   1.21 MB/s	    4532 B/op	      45 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/integration	1.261s
+
+goos: darwin
+goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/cache/redis
 cpu: Apple M3 Pro
-BenchmarkRedisRoundTrip-11    	     100	    387894 ns/op	     248 B/op	       8 allocs/op
+BenchmarkRedisRoundTrip-11    	     100	    364366 ns/op	     248 B/op	       8 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.491s
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.497s
+
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/messaging/kafka/franz
 cpu: Apple M3 Pro
-BenchmarkPublishRoundTrip-11    	     100	    836515 ns/op	    4372 B/op	      45 allocs/op
+BenchmarkPublishRoundTrip-11    	     100	  13560855 ns/op	    4551 B/op	      46 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.764s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	2.126s
+
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/messaging/kafka/sarama
 cpu: Apple M3 Pro
-BenchmarkPublishRoundTrip-11    	     100	    516510 ns/op	    6425 B/op	      78 allocs/op
+BenchmarkPublishRoundTrip-11    	     100	   1128926 ns/op	    6427 B/op	      78 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.727s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.855s

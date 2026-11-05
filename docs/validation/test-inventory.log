@@ -1,97 +1,131 @@
 Module: .
 TestManual
-ok  	github.com/cetrictech/go-platform-kit/clock	0.197s
+ok  	github.com/cetrictech/go-platform-kit/clock	0.179s
 TestLoadAtomic
 TestRequired
 TestProgrammaticSecretAndPointers
 TestDumpMapSecrets
-ok  	github.com/cetrictech/go-platform-kit/config	0.211s
+TestFileFalseAndZeroOverrideDefaults
+TestProfilesProgrammaticAndStandaloneValidation
+TestConfigCycleAndSizeFailAtomically
+ok  	github.com/cetrictech/go-platform-kit/config	0.130s
+TestEmbeddedJSONAndReplacement
+TestScanInvalidAndJSON
 TestScan
-ok  	github.com/cetrictech/go-platform-kit/database	0.227s
+ok  	github.com/cetrictech/go-platform-kit/database	0.126s
 TestLimits
-ok  	github.com/cetrictech/go-platform-kit/encodingx	0.233s
+ok  	github.com/cetrictech/go-platform-kit/encodingx	0.120s
 TestSafeAndWrap
 TestRecovery
 TestNoRows
-ok  	github.com/cetrictech/go-platform-kit/errors	0.198s
+ok  	github.com/cetrictech/go-platform-kit/errors	0.141s
 TestHealth
-ok  	github.com/cetrictech/go-platform-kit/health	0.171s
+TestTimeoutDoesNotCreateUnboundedChecks
+ok  	github.com/cetrictech/go-platform-kit/health	0.173s
 TestJSON
-ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.194s
+TestSafeRetryAndStreamingLifetime
+TestStreamLimitAndOwnedClient
+TestMultipartAndAtomicDownload
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.171s
 TestSecurity
 TestCompression
-ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.422s
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.147s
 TestUUID
-ok  	github.com/cetrictech/go-platform-kit/id	0.152s
+ok  	github.com/cetrictech/go-platform-kit/id	0.124s
 TestConcurrent
 TestExpiredLeaseOwnership
-ok  	github.com/cetrictech/go-platform-kit/idempotency	0.166s
+ok  	github.com/cetrictech/go-platform-kit/idempotency	0.139s
 TestNoop
-ok  	github.com/cetrictech/go-platform-kit/instrument	0.134s
+ok  	github.com/cetrictech/go-platform-kit/instrument	0.198s
+TestShutdownCancelsAndWaits
+TestDeadlineAndLaterCleanup
+ok  	github.com/cetrictech/go-platform-kit/internal/consumerlife	0.182s
 ?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
 TestRollback
-ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.132s
+TestResourceFactoriesAndPartialCleanup
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.157s
 TestRedaction
-ok  	github.com/cetrictech/go-platform-kit/logger	0.152s
+TestSecretTaggedStructuredValue
+TestDiagnosticCredentialRedaction
+TestOutputOwnershipAndDerivedClose
+TestOpenFailureAndSharedLevel
+TestFileRotationCompressionAndRetention
+ok  	github.com/cetrictech/go-platform-kit/logger	0.402s
 TestRecovery
 TestAcknowledgment
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	0.148s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	0.166s
 TestInsert
-ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.155s
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.156s
 TestCursor
 TestOffset
-ok  	github.com/cetrictech/go-platform-kit/pagination	0.163s
+TestPageSizeAndOffsetLimits
+TestKeyRingRotationAndConcurrentSigning
+TestCursorKeyTypesAndNoQueryOnTamper
+ok  	github.com/cetrictech/go-platform-kit/pagination	0.167s
 TestAtomic
 TestTinyRate
 TestEvictionCannotResetBudget
-ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.157s
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.144s
 TestOpen
 TestHalfOpen
-ok  	github.com/cetrictech/go-platform-kit/resilience	0.131s
+TestBoundedQueue
+ok  	github.com/cetrictech/go-platform-kit/resilience	0.125s
 TestAtomic
 TestDebugHidden
 TestDebugAuthorization
 TestRetryAfterDoesNotOverflow
-ok  	github.com/cetrictech/go-platform-kit/response	0.439s
+ok  	github.com/cetrictech/go-platform-kit/response	0.137s
 TestAttempts
-ok  	github.com/cetrictech/go-platform-kit/retry	0.131s
+ok  	github.com/cetrictech/go-platform-kit/retry	0.122s
 TestCrypto
-ok  	github.com/cetrictech/go-platform-kit/security	0.142s
+ok  	github.com/cetrictech/go-platform-kit/security	0.116s
 TestStruct
 TestNil
 TestHTTPDecode
-ok  	github.com/cetrictech/go-platform-kit/validation	0.178s
+ok  	github.com/cetrictech/go-platform-kit/validation	0.142s
 TestDrain
-ok  	github.com/cetrictech/go-platform-kit/worker	0.145s
+TestRegisteredRetryContextAndMetrics
+ok  	github.com/cetrictech/go-platform-kit/worker	0.142s
 Module: database/postgres
 TestInvalid
-ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.245s
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.208s
 Module: database/mysql
 TestInvalid
-ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.310s
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.262s
 Module: cache/redis
 TestInvalid
-ok  	github.com/cetrictech/go-platform-kit/cache/redis	1.107s
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.202s
 Module: messaging/kafka/franz
 TestInvalid
 TestOptions
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.253s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.194s
 Module: messaging/kafka/sarama
 TestInvalid
 TestConfig
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.244s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.262s
 Module: grpcx
 TestDefaultsAndHealth
 TestCustomTLSVerifier
+TestAuthenticationRunsInsideServerDeadline
+TestStreamingTransportDeadline
+TestForcedShutdownIsBounded
+TestWrappedDiagnosticsNeverBecomeStatus
 TestMutualTLS
-ok  	github.com/cetrictech/go-platform-kit/grpcx	0.293s
+ok  	github.com/cetrictech/go-platform-kit/grpcx	0.349s
 Module: spiffe
 TestWorkloadTLSAndRotation
 TestRejectPolicy
-ok  	github.com/cetrictech/go-platform-kit/spiffe	0.277s
+ok  	github.com/cetrictech/go-platform-kit/spiffe	0.353s
 Module: observability
 TestGRPCPropagation
 TestProviders
-ok  	github.com/cetrictech/go-platform-kit/observability	0.364s
+TestOTLPExportOverTLS
+ok  	github.com/cetrictech/go-platform-kit/observability	0.484s
+Module: security/jwt
+TestSignatureClaimsAndHTTP
+TestJWKSRotationThrottleAndFailClosed
+TestPolicyAndBounds
+ok  	github.com/cetrictech/go-platform-kit/security/jwt	0.245s
 Module: integration
 ?   	github.com/cetrictech/go-platform-kit/integration	[no test files]
+?   	github.com/cetrictech/go-platform-kit/integration/cmd/fixtures	[no test files]

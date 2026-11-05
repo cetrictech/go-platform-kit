@@ -1,0 +1,70 @@
+name: go-platform-kit-extended-tests
+services:
+  redis-cluster:
+    image: redis:8
+    command: ["sh", "/fixtures/redis-topology.sh", "cluster"]
+    volumes: ["./fixtures:/fixtures:ro"]
+    ports: ["127.0.0.1:17001:17001", "127.0.0.1:17002:17002", "127.0.0.1:17003:17003"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p 17001 cluster info | grep -q cluster_state:ok"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  redis-sentinel:
+    image: redis:8
+    command: ["sh", "/fixtures/redis-topology.sh", "sentinel"]
+    volumes: ["./fixtures:/fixtures:ro"]
+    ports: ["127.0.0.1:17101:17101", "127.0.0.1:17102:17102", "127.0.0.1:17103:17103"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "17103", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  postgres-secure:
+    image: postgres:18
+    environment:
+      POSTGRES_PASSWORD: sdk-test-only
+      POSTGRES_DB: sdk
+    entrypoint: ["sh", "-c", "cp /tls/server.key /tmp/sdk-pg.key && chown postgres:postgres /tmp/sdk-pg.key && chmod 0600 /tmp/sdk-pg.key && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/tls/server.crt -c ssl_key_file=/tmp/sdk-pg.key -c ssl_ca_file=/tls/ca.crt -c hba_file=/fixtures/pg_hba.conf"]
+    volumes: ["${GPK_TLS_DIR:?set GPK_TLS_DIR}:/tls:ro", "./fixtures:/fixtures:ro"]
+    ports: ["127.0.0.1:25432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sdk"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  mysql-secure:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: sdk-test-only
+      MYSQL_USER: sdk
+      MYSQL_PASSWORD: sdk-test-only
+      MYSQL_DATABASE: sdk
+    entrypoint: ["sh", "-c", "cp /tls/server.key /tmp/sdk-mysql.key && chown mysql:mysql /tmp/sdk-mysql.key && chmod 0600 /tmp/sdk-mysql.key && exec docker-entrypoint.sh mysqld --ssl-ca=/tls/ca.crt --ssl-cert=/tls/server.crt --ssl-key=/tmp/sdk-mysql.key --require-secure-transport=ON"]
+    volumes: ["${GPK_TLS_DIR:?set GPK_TLS_DIR}:/tls:ro", "./fixtures/mysql-tls.sql:/docker-entrypoint-initdb.d/tls.sql:ro"]
+    ports: ["127.0.0.1:23306:3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-psdk-test-only"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  redis-secure:
+    image: redis:8
+    command: ["redis-server", "--port", "0", "--tls-port", "17479", "--tls-cert-file", "/tls/server.crt", "--tls-key-file", "/tls/server.key", "--tls-ca-cert-file", "/tls/ca.crt", "--tls-auth-clients", "yes"]
+    volumes: ["${GPK_TLS_DIR:?set GPK_TLS_DIR}:/tls:ro"]
+    ports: ["127.0.0.1:17479:17479"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cacert", "/tls/ca.crt", "--cert", "/tls/client.crt", "--key", "/tls/client.key", "-p", "17479", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  redpanda-secure:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.3.1
+    entrypoint: ["sh", "-c", "cp /fixtures/redpanda-secure.yaml /tmp/redpanda.yaml && exec rpk redpanda start --config /tmp/redpanda.yaml --overprovisioned --smp 1 --memory 512M --reserve-memory 0M --check=false"]
+    volumes: ["${GPK_TLS_DIR:?set GPK_TLS_DIR}:/tls:ro", "./fixtures:/fixtures:ro"]
+    ports: ["127.0.0.1:29092:29092", "127.0.0.1:29644:9644"]
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "config", "get", "enable_sasl", "-X", "admin.hosts=127.0.0.1:9644"]
+      interval: 2s
+      timeout: 2s
+      retries: 60

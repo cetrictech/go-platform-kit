@@ -3,12 +3,14 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/cetrictech/go-platform-kit/internal/redact"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"log/slog"
 	"os"
+	"sync"
 )
 
 // Config contains explicit constructor settings; see package documentation for defaults.
@@ -16,10 +18,12 @@ type Config struct {
 	JSON                                      bool
 	Level                                     slog.Level
 	Output                                    io.Writer
+	OwnOutput                                 bool
 	File                                      string
 	MaxSizeMB, MaxBackups, MaxAgeDays         int
 	Compress                                  bool
 	Service, Version, Environment, TimeFormat string
+	SanitizeText                              func(string) string
 }
 
 // Logger embeds native slog and owns applicable configured outputs.
@@ -27,6 +31,7 @@ type Logger struct {
 	*slog.Logger
 	level  *slog.LevelVar
 	closer io.Closer
+	state  *outputState
 }
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
@@ -38,6 +43,9 @@ func New(c Config) *Logger {
 		out = os.Stderr
 	}
 	var closer io.Closer
+	if c.OwnOutput {
+		closer, _ = out.(io.Closer)
+	}
 	if c.File != "" {
 		r := &lumberjack.Logger{Filename: c.File, MaxSize: c.MaxSizeMB, MaxBackups: c.MaxBackups, MaxAge: c.MaxAgeDays, Compress: c.Compress}
 		out = r
@@ -47,7 +55,11 @@ func New(c Config) *Logger {
 		if a.Key == slog.TimeKey && c.TimeFormat != "" {
 			return slog.String(a.Key, a.Value.Time().UTC().Format(c.TimeFormat))
 		}
-		return clean(a)
+		a = clean(a)
+		if a.Value.Kind() == slog.KindString && c.SanitizeText != nil {
+			a.Value = slog.StringValue(c.SanitizeText(a.Value.String()))
+		}
+		return a
 	}}
 	var h slog.Handler
 	if c.JSON {
@@ -60,7 +72,7 @@ func New(c Config) *Logger {
 		l = l.With("service", c.Service, "version", c.Version, "environment", c.Environment)
 	}
 	host, _ := os.Hostname()
-	return &Logger{l.With("hostname", host), level, closer}
+	return &Logger{l.With("hostname", host), level, closer, &outputState{out: out, closer: closer}}
 }
 
 // From wraps an existing logger. Its handler and lifecycle remain caller-owned.
@@ -84,14 +96,17 @@ func clean(a slog.Attr) slog.Attr {
 		a.Value = slog.GroupValue(out...)
 	} else if a.Value.Kind() == slog.KindAny {
 		v := a.Value.Any()
-		if e, ok := v.(error); ok {
-			a.Value = slog.StringValue(e.Error())
-		} else if b, e := json.Marshal(v); e == nil {
-			var x any
-			if json.Unmarshal(b, &x) == nil {
-				a.Value = slog.AnyValue(redact.Redact(x))
-			}
+		if level, ok := v.(slog.Level); ok {
+			a.Value = slog.StringValue(level.String())
+		} else if e, ok := v.(error); ok {
+			a.Value = slog.StringValue(redact.SafeText(e.Error()))
+		} else {
+			a.Value = slog.AnyValue(redact.Redact(v))
 		}
+
+	}
+	if a.Value.Kind() == slog.KindString {
+		a.Value = slog.StringValue(redact.SafeText(a.Value.String()))
 	}
 	return a
 }
@@ -104,7 +119,9 @@ func (l *Logger) SetLevel(v slog.Level) {
 }
 
 // With returns a logger enriched with structured attributes.
-func (l *Logger) With(args ...any) *Logger { return &Logger{l.Logger.With(args...), l.level, l.closer} }
+func (l *Logger) With(args ...any) *Logger {
+	return &Logger{l.Logger.With(args...), l.level, l.closer, l.state}
+}
 
 // WithError returns a logger with an error attribute; error text must be safe for logging.
 func (l *Logger) WithError(e error) *Logger { return l.With("error", e) }
@@ -121,10 +138,69 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 
 // Close releases owned resources. See package documentation for shutdown ordering.
 func (l *Logger) Close() error {
-	if l.closer != nil {
-		return l.closer.Close()
+	if l.state == nil {
+		return nil
 	}
-	return nil
+	l.state.once.Do(func() {
+		if l.state.closer != nil {
+			l.state.err = l.state.closer.Close()
+		}
+	})
+	return l.state.err
+}
+
+type outputState struct {
+	out    io.Writer
+	closer io.Closer
+	once   sync.Once
+	err    error
+}
+
+// Open validates output settings and eagerly checks file access. New remains
+// available for callers that deliberately use slog's lazy write error handling.
+func Open(c Config) (*Logger, error) {
+	if c.File != "" && c.Output != nil {
+		return nil, errors.New("logger: choose file or output")
+	}
+	if c.MaxSizeMB < 0 || c.MaxBackups < 0 || c.MaxAgeDays < 0 {
+		return nil, errors.New("logger: negative rotation setting")
+	}
+	if c.OwnOutput && c.File == "" {
+		if _, ok := c.Output.(io.Closer); !ok {
+			return nil, errors.New("logger: owned output must implement Close")
+		}
+	}
+	if c.File != "" {
+		f, err := os.OpenFile(c.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			return nil, fmt.Errorf("logger: open output: %w", err)
+		}
+		if err := f.Close(); err != nil {
+			return nil, err
+		}
+	}
+	return New(c), nil
+}
+
+// Flush invokes a configured writer's flush contract. Injected writers remain
+// caller-owned unless OwnOutput is explicitly enabled. Call after producers stop.
+func (l *Logger) Flush(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if l.state == nil {
+		return nil
+	}
+	switch w := l.state.out.(type) {
+	case interface{ Flush(context.Context) error }:
+		return w.Flush(ctx)
+	case interface{ Flush() error }:
+		return w.Flush()
+	case interface{ Sync() error }:
+		return w.Sync()
+	default:
+		return nil
+	}
 }
 
 type contextKey struct{}
@@ -153,7 +229,7 @@ func (h *contextHandler) WithGroup(g string) slog.Handler {
 type redactHandler struct{ slog.Handler }
 
 func (h *redactHandler) Handle(ctx context.Context, r slog.Record) error {
-	out := slog.NewRecord(r.Time, r.Level, r.Message, r.PC)
+	out := slog.NewRecord(r.Time, r.Level, redact.SafeText(r.Message), r.PC)
 	r.Attrs(func(a slog.Attr) bool { out.AddAttrs(clean(a)); return true })
 	return h.Handler.Handle(ctx, out)
 }

@@ -16,3 +16,9 @@ WithinTx takes TxOptions and a callback, commits only on nil, and rolls back on 
 Native exposes pgxpool for advanced tracing, connection hooks, prepared statements and types. SQLDB returns a database/sql bridge suitable for outbox.SQLStore; close that bridge before closing the pool. Primary/replica routing is application-owned in this initial release.
 
 Verified TLS is required by default. `AllowPlaintext: true` is an explicit opt-in for isolated development/test infrastructure; it does not disable validation of a supplied TLS configuration. A custom certificate verifier, including go-spiffe verification, is supported.
+
+`NamedArgs` supplies library-owned strict named arguments: `client.Exec(ctx, "UPDATE accounts SET name=@name WHERE id=@id", postgres.NamedArgs{"name": name, "id": id})`. Missing or unused names fail. `Hooks.BeforeBegin`, `AfterQuery` and `AfterTransaction` are explicit per-client callbacks. QueryLogger emits operation, duration and outcome without SQL or parameters. Hooks receive trusted SQL text for application-controlled inspection; keep callbacks prompt and safe.
+
+`Prepare(ctx, sql)` returns an owned statement with Exec/Query/QueryRow/Get/Select and Native. Close statements and `SQLDB()` bridges before the pool. Deferred QueryRow handles support one Scan and never execute twice. The cached scanner flattens exported embedded pointer structs, supports sql.Scanner and `db:"field,json"`, and rejects ambiguous mappings. `database.JSON[T]` distinguishes SQL NULL from valid JSON null.
+
+`NewCluster(ctx, ClusterConfig{Primary: ..., Replicas: ...})` opens explicitly configured pools and cleans up partial startup. Writer always selects the primary; Reader(Strong) selects primary and Reader(Eventual) round-robins replicas configured read-only. It never infers consistency by parsing SQL. Replica topology, replication and promotion remain operator-owned.

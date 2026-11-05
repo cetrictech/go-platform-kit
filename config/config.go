@@ -18,10 +18,14 @@ import (
 
 // Options controls loading. Precedence is defaults, existing values/file, environment.
 type Options struct {
-	Prefix   string
-	Lookup   func(string) (string, bool)
-	File     io.Reader
-	Validate func(any) error
+	Environment  string
+	Overrides    map[string]io.Reader
+	Values       map[string]string
+	MaxFileBytes int64
+	Prefix       string
+	Lookup       func(string) (string, bool)
+	File         io.Reader
+	Validate     func(any) error
 }
 
 // Load updates a struct only after all conversions and validation succeed. Tags are env, default, required, secret.
@@ -30,51 +34,91 @@ func Load(dst any, options ...Options) error {
 	if v.Kind() != reflect.Pointer || v.IsNil() || v.Elem().Kind() != reflect.Struct {
 		return errors.New("config: destination must be a non-nil struct pointer")
 	}
+	if len(options) > 1 {
+		return errors.New("config: at most one options value allowed")
+	}
 	o := Options{}
-	if len(options) > 0 {
+	if len(options) == 1 {
 		o = options[0]
+	}
+	if o.MaxFileBytes < 0 || o.MaxFileBytes > 16<<20 {
+		return errors.New("config: invalid file size bound")
+	}
+	if o.MaxFileBytes == 0 {
+		o.MaxFileBytes = 1 << 20
 	}
 	if o.Lookup == nil {
 		o.Lookup = os.LookupEnv
 	}
+	var override io.Reader
+	if o.Environment != "" {
+		var ok bool
+		override, ok = o.Overrides[o.Environment]
+		if !ok || override == nil {
+			return errors.New("config: environment override not configured")
+		}
+	}
+	budget := 10000
+	if e := checkGraph(v.Elem(), 0, &budget); e != nil {
+		return e
+	}
 	tmp := reflect.New(v.Elem().Type())
 	tmp.Elem().Set(clone(v.Elem(), map[visit]reflect.Value{}))
-	var err error
-	if o.File != nil {
-		d := json.NewDecoder(o.File)
+	if _, e := loadFields(tmp.Elem(), o.Prefix, nil, true, 0); e != nil {
+		return e
+	}
+	for _, reader := range []io.Reader{o.File, override} {
+		if reader == nil {
+			continue
+		}
+		limited := &io.LimitedReader{R: reader, N: o.MaxFileBytes + 1}
+		d := json.NewDecoder(limited)
 		d.DisallowUnknownFields()
-		if err = d.Decode(tmp.Interface()); err != nil {
-			return fmt.Errorf("config: file: %w", err)
+		if e := d.Decode(tmp.Interface()); e != nil {
+			return fmt.Errorf("config: file: %w", e)
 		}
 		var extra any
-		if err = d.Decode(&extra); err != io.EOF {
+		e := d.Decode(&extra)
+		if limited.N == 0 {
+			return errors.New("config: file size limit exceeded")
+		}
+		if e != io.EOF {
 			return errors.New("config: trailing JSON data")
 		}
 	}
-	if err = load(tmp.Elem(), o.Prefix, o.Lookup); err != nil {
-		return err
+	lookup := func(key string) (string, bool) {
+		if value, ok := o.Values[key]; ok {
+			return value, true
+		}
+		return o.Lookup(key)
 	}
-	if err = Validate(tmp.Interface()); err != nil {
-		return err
+	if _, e := loadFields(tmp.Elem(), o.Prefix, lookup, false, 0); e != nil {
+		return e
+	}
+	if e := Validate(tmp.Interface()); e != nil {
+		return e
 	}
 	if o.Validate != nil {
-		if err = o.Validate(tmp.Interface()); err != nil {
-			return err
+		if e := o.Validate(tmp.Interface()); e != nil {
+			return e
 		}
 	}
 	v.Elem().Set(tmp.Elem())
 	return nil
 }
-func load(v reflect.Value, prefix string, lookup func(string) (string, bool)) error {
-	return loadDepth(v, prefix, lookup, 0)
-}
-func loadDepth(v reflect.Value, prefix string, lookup func(string) (string, bool), depth int) error {
-	if depth > 32 {
-		return errors.New("config: nesting exceeds 32 levels")
+func groupType(t reflect.Type) bool {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
 	}
-	t := v.Type()
+	return t.Kind() == reflect.Struct && t != reflect.TypeFor[time.Time]() && t != reflect.TypeFor[url.URL]() && !reflect.PointerTo(t).Implements(reflect.TypeFor[encoding.TextUnmarshaler]())
+}
+func loadFields(v reflect.Value, prefix string, lookup func(string) (string, bool), defaults bool, depth int) (bool, error) {
+	if depth > 32 {
+		return false, errors.New("config: nesting exceeds 32 levels")
+	}
+	touched := false
 	for i := 0; i < v.NumField(); i++ {
-		f := t.Field(i)
+		f := v.Type().Field(i)
 		x := v.Field(i)
 		if !x.CanSet() {
 			continue
@@ -87,30 +131,77 @@ func loadDepth(v reflect.Value, prefix string, lookup func(string) (string, bool
 			key = strings.ToUpper(f.Name)
 		}
 		key = prefix + key
-		group := x
-		if x.Kind() == reflect.Pointer && x.Type().Elem().Kind() == reflect.Struct && !x.Type().Implements(reflect.TypeFor[encoding.TextUnmarshaler]()) && x.Type().Elem() != reflect.TypeOf(url.URL{}) {
-			if x.IsNil() {
-				x.Set(reflect.New(x.Type().Elem()))
+		if groupType(x.Type()) {
+			group := x
+			fresh := false
+			if group.Kind() == reflect.Pointer {
+				fresh = group.IsNil()
+				if fresh {
+					group = reflect.New(group.Type().Elem())
+				}
+				group = group.Elem()
 			}
-			group = x.Elem()
-		}
-		if group.Kind() == reflect.Struct && group.Type() != reflect.TypeOf(time.Time{}) && group.Type() != reflect.TypeOf(url.URL{}) {
-			if err := loadDepth(group, key+"_", lookup, depth+1); err != nil {
-				return err
+			changed, e := loadFields(group, key+"_", lookup, defaults, depth+1)
+			if e != nil {
+				return false, e
 			}
+			if fresh && changed {
+				x.Set(group.Addr())
+			}
+			touched = touched || changed
 			continue
 		}
-		raw, ok := lookup(key)
-		if !ok && x.IsZero() {
-			raw, ok = f.Tag.Lookup("default")
+		var raw string
+		var present bool
+		if defaults {
+			if x.IsZero() {
+				raw, present = f.Tag.Lookup("default")
+			}
+		} else {
+			raw, present = lookup(key)
 		}
-		if ok {
-			if err := convert(x, raw); err != nil {
-				return fmt.Errorf("config: %s: invalid %s", key, x.Type())
+		if present {
+			if e := convert(x, raw); e != nil {
+				return false, fmt.Errorf("config: %s: invalid %s", key, x.Type())
+			}
+			touched = true
+		}
+	}
+	return touched, nil
+}
+func checkGraph(v reflect.Value, depth int, budget *int) error {
+	if !v.IsValid() {
+		return nil
+	}
+	if depth > 32 || *budget <= 0 {
+		return errors.New("config: cyclic or excessively large/nested configuration")
+	}
+	*budget--
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if !v.IsNil() {
+			return checkGraph(v.Elem(), depth+1, budget)
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if v.Type().Field(i).PkgPath == "" {
+				if e := checkGraph(v.Field(i), depth+1, budget); e != nil {
+					return e
+				}
 			}
 		}
-		if f.Tag.Get("required") == "true" && x.IsZero() {
-			return fmt.Errorf("config: %s is required", key)
+	case reflect.Map:
+		it := v.MapRange()
+		for it.Next() {
+			if e := checkGraph(it.Value(), depth+1, budget); e != nil {
+				return e
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < v.Len(); i++ {
+			if e := checkGraph(v.Index(i), depth+1, budget); e != nil {
+				return e
+			}
 		}
 	}
 	return nil
@@ -182,64 +273,70 @@ func convert(v reflect.Value, s string) error {
 	return nil
 }
 
-// Validate invokes an explicit validation hook.
-func Validate(v any) error {
-	if x, ok := v.(interface{ Validate() error }); ok {
-		return x.Validate()
+// Validate checks required tags recursively and runs nested/root validation hooks after field checks.
+func Validate(value any) error {
+	v := reflect.ValueOf(value)
+	if !v.IsValid() || v.Kind() == reflect.Pointer && v.IsNil() {
+		return errors.New("config: non-nil struct required")
+	}
+	base := v
+	for base.Kind() == reflect.Pointer {
+		base = base.Elem()
+	}
+	if base.Kind() != reflect.Struct {
+		return errors.New("config: struct required")
+	}
+	budget := 10000
+	if e := checkGraph(v, 0, &budget); e != nil {
+		return e
+	}
+	return validateValue(v, "")
+}
+func validateValue(v reflect.Value, path string) error {
+	original := v
+	for v.Kind() == reflect.Pointer {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil
+	}
+	for i := 0; i < v.NumField(); i++ {
+		f := v.Type().Field(i)
+		if f.PkgPath != "" {
+			continue
+		}
+		x := v.Field(i)
+		name := f.Name
+		if path != "" {
+			name = path + "." + name
+		}
+		if f.Tag.Get("required") == "true" && x.IsZero() {
+			return fmt.Errorf("config: %s is required", name)
+		}
+		if groupType(x.Type()) {
+			if e := validateValue(x, name); e != nil {
+				return e
+			}
+		}
+	}
+	if original.CanInterface() {
+		if hook, ok := original.Interface().(interface{ Validate() error }); ok {
+			return hook.Validate()
+		}
+	}
+	if v.CanAddr() && v.Addr().CanInterface() {
+		if hook, ok := v.Addr().Interface().(interface{ Validate() error }); ok {
+			return hook.Validate()
+		}
 	}
 	return nil
 }
 
 // Dump returns JSON with secret-tagged and sensitive-name fields redacted, recursively.
-func Dump(v any) ([]byte, error) { return json.Marshal(redact(reflect.ValueOf(v))) }
-func redact(v reflect.Value) any {
-	if !v.IsValid() {
-		return nil
-	}
-	if v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface {
-		if v.IsNil() {
-			return nil
-		}
-		return redact(v.Elem())
-	}
-	switch v.Kind() {
-	case reflect.Struct:
-		m := map[string]any{}
-		for i := 0; i < v.NumField(); i++ {
-			f := v.Type().Field(i)
-			if f.PkgPath != "" {
-				continue
-			}
-			n := f.Name
-			if f.Tag.Get("secret") == "true" || redaction.Sensitive(n) {
-				m[n] = "[REDACTED]"
-			} else {
-				m[n] = redact(v.Field(i))
-			}
-		}
-		return m
-	case reflect.Map:
-		m := map[string]any{}
-		it := v.MapRange()
-		for it.Next() {
-			k := fmt.Sprint(it.Key().Interface())
-			if redaction.Sensitive(k) {
-				m[k] = "[REDACTED]"
-			} else {
-				m[k] = redact(it.Value())
-			}
-		}
-		return m
-	case reflect.Slice, reflect.Array:
-		a := make([]any, v.Len())
-		for i := range a {
-			a[i] = redact(v.Index(i))
-		}
-		return a
-	default:
-		return v.Interface()
-	}
-}
+func Dump(v any) ([]byte, error) { return json.Marshal(redaction.Redact(v)) }
 
 // GetString reads an environment variable, returning the fallback when absent.
 func GetString(k, f string) string {

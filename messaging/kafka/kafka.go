@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	app "github.com/cetrictech/go-platform-kit/errors"
 	"github.com/cetrictech/go-platform-kit/retry"
 	"strconv"
 	"sync/atomic"
@@ -85,11 +86,17 @@ func Recover(h Handler) Handler {
 // A nil return after DLQ means the consumer may commit the source offset. DLQ failure leaves it uncommitted.
 // Publish and source commit are separate operations; consumers must deduplicate DLQ deliveries.
 func WithFailure(h Handler, p retry.Policy, producer Producer, dlq string) Handler {
+	if h == nil || p.MaxAttempts < 1 || p.Delay < 0 || p.MaxDelay < 0 || p.MaxElapsed < 0 {
+		return func(context.Context, Message) error { return errors.New("kafka: invalid handler failure policy") }
+	}
 	return func(ctx context.Context, m Message) error {
 		attempts := 0
 		e := retry.Do(ctx, p, func(ctx context.Context) error { attempts++; return Recover(h)(ctx, m) })
 		if e == nil {
 			return nil
+		}
+		if ctx.Err() != nil {
+			return ctx.Err()
 		}
 		if producer == nil || dlq == "" {
 			return e
@@ -103,6 +110,9 @@ func WithFailure(h Handler, p retry.Policy, producer Producer, dlq string) Handl
 		headers["original-offset"] = []byte(strconv.FormatInt(m.Offset, 10))
 		headers["attempts"] = []byte(strconv.Itoa(attempts))
 		headers["failed-at"] = []byte(time.Now().UTC().Format(time.RFC3339Nano))
+		classification := app.Classify(e)
+		headers["error-code"] = []byte(classification.Code)
+		headers["error-category"] = []byte(classification.Category)
 		out := m
 		out.Topic = dlq
 		out.Headers = headers

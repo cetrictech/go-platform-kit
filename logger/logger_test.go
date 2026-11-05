@@ -3,6 +3,7 @@ package logger
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 	"testing"
@@ -32,3 +33,26 @@ func BenchmarkJSON(b *testing.B) {
 type discard struct{}
 
 func (*discard) Write(p []byte) (int, error) { return len(p), nil }
+
+func TestSecretTaggedStructuredValue(t *testing.T) {
+	var b bytes.Buffer
+	l := New(Config{JSON: true, Output: &b})
+	value := struct {
+		Material string `secret:"true"`
+		Counter  int64
+	}{"sensitive", 9007199254740993}
+	l.Info("safe", "object", value)
+	if strings.Contains(b.String(), "sensitive") || !strings.Contains(b.String(), "9007199254740993") {
+		t.Fatal(b.String())
+	}
+}
+
+func TestDiagnosticCredentialRedaction(t *testing.T) {
+	var b bytes.Buffer
+	l := New(Config{JSON: true, Output: &b})
+	l.Info("password=hidden authorization: Bearer hidden https://user:hidden@host/path?api_key=hidden")
+	l.WithError(fmt.Errorf("connection postgres://user:hidden@localhost/db failed")).Error("failure")
+	if strings.Contains(b.String(), "hidden") {
+		t.Fatal(b.String())
+	}
+}

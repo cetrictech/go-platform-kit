@@ -10,6 +10,7 @@
 | messaging/kafka/sarama | NewProducer, NewConsumer, NewAdmin | Sarama clients and dispatch goroutine |
 | grpcx | NewServer, NewClient, interceptors | server, client connection; caller creates listener |
 | spiffe | New, ClientTLS, ServerTLS, Identity | Workload API source |
+| security/jwt | New, Verify, Authenticate, Middleware, Refresh | JWKS cache and owned HTTP transport |
 | observability | New, HTTP, Transport, Hook, Producer, Consumer | trace and metric providers |
 
 Prefix each suffix with `github.com/cetrictech/go-platform-kit`; root packages use that same prefix. Optional driver dependencies are transitive dependencies of their adapters. They do not disappear, and importing the root module does not install those drivers.

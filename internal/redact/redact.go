@@ -16,7 +16,7 @@ func Sensitive(key string) bool {
 		}, k)
 	}
 	k = strings.ToLower(k)
-	for _, s := range []string{"password", "passwd", "authorization", "cookie", "token", "secret", "privatekey", "credential", "dsn", "databaseurl", "apikey", "accesskey", "signingkey", "connectionstring"} {
+	for _, s := range []string{"password", "passwd", "authorization", "cookie", "token", "secret", "privatekey", "credential", "dsn", "databaseurl", "apikey", "accesskey", "signingkey", "connectionstring", "debugerror", "stacktrace"} {
 		if strings.Contains(k, s) {
 			return true
 		}
@@ -25,25 +25,4 @@ func Sensitive(key string) bool {
 }
 
 // Redact returns a recursively redacted copy of JSON-like data. Free text must not contain secrets.
-func Redact(v any) any {
-	switch x := v.(type) {
-	case map[string]any:
-		m := make(map[string]any, len(x))
-		for k, v := range x {
-			if Sensitive(k) {
-				m[k] = "[REDACTED]"
-			} else {
-				m[k] = Redact(v)
-			}
-		}
-		return m
-	case []any:
-		a := make([]any, len(x))
-		for i := range x {
-			a[i] = Redact(x[i])
-		}
-		return a
-	default:
-		return v
-	}
-}
+func Redact(v any) any { return SafeValue(v) }

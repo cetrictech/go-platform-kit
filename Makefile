@@ -18,8 +18,10 @@ vuln:
 	./scripts/modules.sh govulncheck ./...
 services:
 	docker compose -f integration/compose.yaml up -d --wait
+	./scripts/extended-services.sh
 services-down:
 	docker compose -f integration/compose.yaml down
+	./scripts/extended-services.sh down
 integration:
 	./scripts/integration.sh
 bench:

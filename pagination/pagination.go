@@ -2,6 +2,7 @@
 package pagination
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -17,31 +18,53 @@ import (
 // Offset contains a validated page number and bounded page size.
 type Offset struct {
 	Page  int `json:"page"`
-	Limit int `json:"limit"`
+	Limit int `json:"page_size"`
 }
 
 // OffsetMeta contains offset pagination totals and navigation flags.
 type OffsetMeta struct {
+	Type string `json:"type"`
 	Offset
-	Total       int64 `json:"total"`
-	Pages       int64 `json:"pages"`
+	Total       int64 `json:"total_records"`
+	Pages       int64 `json:"total_pages"`
 	HasNext     bool  `json:"has_next"`
 	HasPrevious bool  `json:"has_previous"`
 }
 
 // ParseOffset parses and validates page/limit query parameters.
-func ParseOffset(r *http.Request) (Offset, error) {
-	p := Offset{1, 20}
-	for k, d := range map[string]*int{"page": &p.Page, "limit": &p.Limit} {
-		if v := r.URL.Query().Get(k); v != "" {
-			n, e := strconv.Atoi(v)
-			if e != nil {
-				return p, fmt.Errorf("pagination: invalid %s", k)
-			}
-			*d = n
+func ParseOffset(r *http.Request, options ...OffsetConfig) (Offset, error) {
+	cfg, e := offsetConfig(options)
+	if e != nil {
+		return Offset{}, e
+	}
+	p := Offset{Page: 1, Limit: cfg.DefaultLimit}
+	if r == nil || r.URL == nil {
+		return p, errors.New("pagination: request required")
+	}
+	q := r.URL.Query()
+	size := q.Get("page_size")
+	legacy := q.Get("limit")
+	if size != "" && legacy != "" && size != legacy {
+		return p, errors.New("pagination: conflicting page_size and limit")
+	}
+	if size == "" {
+		size = legacy
+	}
+	for key, raw := range map[string]string{"page": q.Get("page"), "page_size": size} {
+		if raw == "" {
+			continue
+		}
+		n, e := strconv.Atoi(raw)
+		if e != nil {
+			return p, fmt.Errorf("pagination: invalid %s", key)
+		}
+		if key == "page" {
+			p.Page = n
+		} else {
+			p.Limit = n
 		}
 	}
-	return p, p.Validate()
+	return p, ValidateOffset(p, cfg)
 }
 
 // Validate checks the supplied value according to package validation rules.
@@ -67,7 +90,7 @@ func NewOffsetMeta(p Offset, total int64) (OffsetMeta, error) {
 	if total%int64(p.Limit) > 0 {
 		pages++
 	}
-	return OffsetMeta{p, total, pages, int64(p.Page) < pages, p.Page > 1}, nil
+	return OffsetMeta{Type: "offset", Offset: p, Total: total, Pages: pages, HasNext: int64(p.Page) < pages, HasPrevious: p.Page > 1}, nil
 }
 
 // Cursor contains versioned, query-bound composite pagination keys.
@@ -83,6 +106,7 @@ type Cursor struct {
 
 // Codec keys must be at least 32 random bytes. Keep previous keys available during rotation.
 type Codec struct {
+	Provider  KeyProvider
 	ActiveKey string
 	Keys      map[string][]byte
 	TTL       time.Duration
@@ -105,10 +129,26 @@ func (c Codec) max() int {
 
 // EncodeCursor authenticates cursor contents with the configured active HMAC key.
 func (c Codec) EncodeCursor(v Cursor) (string, error) {
+	return c.EncodeCursorContext(context.Background(), v)
+}
+
+// EncodeCursorContext supports cancelable external key providers.
+func (c Codec) EncodeCursorContext(ctx context.Context, v Cursor) (string, error) {
+	if e := ctx.Err(); e != nil {
+		return "", e
+	}
 	v.Version = 1
 	v.KeyID = c.ActiveKey
-	if c.TTL < 0 {
-		return "", errors.New("pagination: negative TTL")
+	key := c.Keys[v.KeyID]
+	if c.Provider != nil {
+		var e error
+		v.KeyID, key, e = c.Provider.Active(ctx)
+		if e != nil {
+			return "", e
+		}
+	}
+	if c.TTL < 0 || c.TTL > 0 && c.TTL < time.Second {
+		return "", errors.New("pagination: TTL must be zero or at least one second")
 	}
 	if c.TTL > 0 {
 		v.Expires = c.now().Add(c.TTL).Unix()
@@ -116,7 +156,6 @@ func (c Codec) EncodeCursor(v Cursor) (string, error) {
 	if e := validate(v); e != nil {
 		return "", e
 	}
-	key := c.Keys[v.KeyID]
 	if len(key) < 32 {
 		return "", errors.New("pagination: invalid signing key")
 	}
@@ -134,7 +173,15 @@ func (c Codec) EncodeCursor(v Cursor) (string, error) {
 
 // DecodeCursor verifies size, signature, expiration and query/filter binding before returning keys.
 func (c Codec) DecodeCursor(token, query, filter string) (Cursor, error) {
+	return c.DecodeCursorContext(context.Background(), token, query, filter)
+}
+
+// DecodeCursorContext verifies keys obtained from a cancelable provider.
+func (c Codec) DecodeCursorContext(ctx context.Context, token, query, filter string) (Cursor, error) {
 	var v Cursor
+	if e := ctx.Err(); e != nil {
+		return v, e
+	}
 	if len(token) > base64.RawURLEncoding.EncodedLen(c.max())+45 {
 		return v, errors.New("pagination: cursor too large")
 	}
@@ -151,6 +198,12 @@ func (c Codec) DecodeCursor(token, query, filter string) (Cursor, error) {
 	}
 	tag, e := base64.RawURLEncoding.DecodeString(p[1])
 	key := c.Keys[v.KeyID]
+	if c.Provider != nil {
+		if e != nil {
+			return Cursor{}, errors.New("pagination: invalid signature")
+		}
+		key, e = c.Provider.Key(ctx, v.KeyID)
+	}
 	if e != nil || len(key) < 32 {
 		return Cursor{}, errors.New("pagination: invalid signature")
 	}
@@ -179,15 +232,18 @@ func validate(v Cursor) error {
 
 // CursorMeta describes a limit+1 query. Previous navigation requires reversing all sort directions then reversing the returned rows.
 type CursorMeta struct {
-	Next        string `json:"next,omitempty"`
-	Previous    string `json:"previous,omitempty"`
+	Type        string `json:"type"`
+	Limit       int    `json:"limit"`
+	Total       *int64 `json:"total_records,omitempty"`
+	Next        string `json:"next_cursor,omitempty"`
+	Previous    string `json:"previous_cursor,omitempty"`
 	HasNext     bool   `json:"has_next"`
 	HasPrevious bool   `json:"has_previous"`
 }
 
 // NewCursorMeta constructs navigation metadata from issued cursors.
 func NewCursorMeta(next, previous string) CursorMeta {
-	return CursorMeta{next, previous, next != "", previous != ""}
+	return CursorMeta{Type: "cursor", Next: next, Previous: previous, HasNext: next != "", HasPrevious: previous != ""}
 }
 
 // CursorRequest contains bounded query parameters. Ordering direction is authenticated inside the cursor.
@@ -198,6 +254,9 @@ type CursorRequest struct {
 
 // ParseCursor parses bounded cursor and limit request parameters.
 func ParseCursor(r *http.Request) (CursorRequest, error) {
+	if r == nil || r.URL == nil {
+		return CursorRequest{}, errors.New("pagination: request required")
+	}
 	out := CursorRequest{Cursor: r.URL.Query().Get("cursor"), Limit: 20}
 	if len(out.Cursor) > 8192 {
 		return out, errors.New("pagination: cursor too large")

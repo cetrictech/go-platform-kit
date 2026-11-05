@@ -9,6 +9,7 @@ import (
 	"github.com/cetrictech/go-platform-kit/instrument"
 	"github.com/cetrictech/go-platform-kit/security"
 	r "github.com/redis/go-redis/v9"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,8 @@ var ErrOwnership = errors.New("redis: lock ownership lost")
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
+	Mode                                         Mode
+	SentinelUsername, SentinelPassword           string
 	AllowPlaintext                               bool
 	Observer                                     instrument.Hook
 	Addresses                                    []string
@@ -37,8 +40,39 @@ type Client struct {
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
 func New(ctx context.Context, c Config) (*Client, error) {
-	if len(c.Addresses) == 0 || c.PoolSize < 0 || c.DB < 0 {
+	if len(c.Addresses) == 0 || c.PoolSize < 0 || c.DB < 0 || c.MinIdleConnections < 0 || c.DialTimeout < 0 || c.ReadTimeout < 0 || c.WriteTimeout < 0 || c.MaxRetries < -1 {
 		return nil, errors.New("redis: invalid config")
+	}
+	for _, a := range c.Addresses {
+		if strings.TrimSpace(a) == "" {
+			return nil, errors.New("redis: empty address")
+		}
+	}
+	mode := c.Mode
+	if mode == "" {
+		if c.MasterName != "" {
+			mode = Sentinel
+		} else if len(c.Addresses) > 1 {
+			mode = Cluster
+		} else {
+			mode = Standalone
+		}
+	}
+	switch mode {
+	case Standalone:
+		if c.MasterName != "" || len(c.Addresses) != 1 {
+			return nil, errors.New("redis: standalone requires one address and no master")
+		}
+	case Sentinel:
+		if c.MasterName == "" {
+			return nil, errors.New("redis: sentinel requires master name")
+		}
+	case Cluster:
+		if c.MasterName != "" || c.DB != 0 {
+			return nil, errors.New("redis: cluster requires DB zero and no sentinel master")
+		}
+	default:
+		return nil, errors.New("redis: invalid connection mode")
 	}
 	if c.TLS != nil && c.TLS.InsecureSkipVerify && c.TLS.VerifyPeerCertificate == nil && c.TLS.VerifyConnection == nil {
 		return nil, errors.New("redis: TLS verification required")
@@ -46,11 +80,19 @@ func New(ctx context.Context, c Config) (*Client, error) {
 	if c.TLS == nil && !c.AllowPlaintext {
 		return nil, errors.New("redis: TLS required; explicitly opt into plaintext for local development")
 	}
-	o := &r.UniversalOptions{ContextTimeoutEnabled: true, Addrs: append([]string(nil), c.Addresses...), MasterName: c.MasterName, Username: c.Username, Password: c.Password, DB: c.DB, PoolSize: c.PoolSize, MinIdleConns: c.MinIdleConnections, MaxRetries: c.MaxRetries, DialTimeout: c.DialTimeout, ReadTimeout: c.ReadTimeout, WriteTimeout: c.WriteTimeout}
+	o := &r.UniversalOptions{SentinelUsername: c.SentinelUsername, SentinelPassword: c.SentinelPassword, ContextTimeoutEnabled: true, Addrs: append([]string(nil), c.Addresses...), MasterName: c.MasterName, Username: c.Username, Password: c.Password, DB: c.DB, PoolSize: c.PoolSize, MinIdleConns: c.MinIdleConnections, MaxRetries: c.MaxRetries, DialTimeout: c.DialTimeout, ReadTimeout: c.ReadTimeout, WriteTimeout: c.WriteTimeout}
 	if c.TLS != nil {
 		o.TLSConfig = c.TLS.Clone()
 	}
-	native := r.NewUniversalClient(o)
+	var native r.UniversalClient
+	switch mode {
+	case Standalone:
+		native = r.NewClient(o.Simple())
+	case Sentinel:
+		native = r.NewFailoverClient(o.Failover())
+	case Cluster:
+		native = r.NewClusterClient(o.Cluster())
+	}
 	if c.Observer != nil {
 		native.AddHook(redisHook{c.Observer})
 	}
@@ -108,6 +150,9 @@ func (c *Client) GetJSON(ctx context.Context, key string, dst any) error {
 
 // CacheAside may run load concurrently for misses. Use external coordination for expensive duplicate loads.
 func (c *Client) CacheAside(ctx context.Context, key string, dst any, ttl time.Duration, load func(context.Context) (any, error)) error {
+	if load == nil {
+		return errors.New("redis: cache loader required")
+	}
 	e := c.GetJSON(ctx, key, dst)
 	if e == nil {
 		return nil
@@ -171,7 +216,12 @@ func (c *Client) Subscribe(ctx context.Context, patterns bool, handler func(cont
 	}
 	var sub *r.PubSub
 	if patterns {
-		sub = c.client.PSubscribe(ctx, c.keys(channels)...)
+		patterns := make([]string, len(channels))
+		prefix := escapeGlob(c.prefix)
+		for i, p := range channels {
+			patterns[i] = prefix + p
+		}
+		sub = c.client.PSubscribe(ctx, patterns...)
 	} else {
 		sub = c.client.Subscribe(ctx, c.keys(channels)...)
 	}
@@ -188,7 +238,7 @@ func (c *Client) Subscribe(ctx context.Context, patterns bool, handler func(cont
 			if !ok {
 				return errors.New("redis: subscription closed")
 			}
-			if e := handler(ctx, Message{m.Channel, m.Pattern, m.Payload}); e != nil {
+			if e := handler(ctx, Message{strings.TrimPrefix(m.Channel, c.prefix), strings.TrimPrefix(m.Pattern, escapeGlob(c.prefix)), m.Payload}); e != nil {
 				return e
 			}
 		}
@@ -511,4 +561,28 @@ func (c *Client) XReadGroup(ctx context.Context, key, group, consumer, lastID st
 // XAutoClaim claims idle pending entries and returns the next scan position.
 func (c *Client) XAutoClaim(ctx context.Context, key, group, consumer, start string, idle time.Duration, count int64) ([]StreamMessage, string, error) {
 	return c.client.XAutoClaim(ctx, &r.XAutoClaimArgs{Stream: c.key(key), Group: group, Consumer: consumer, Start: start, MinIdle: idle, Count: count}).Result()
+}
+
+// Mode explicitly selects a universal-client topology, including cluster discovery from a single seed.
+type Mode string
+
+const (
+	Standalone Mode = "standalone"
+	Sentinel   Mode = "sentinel"
+	Cluster    Mode = "cluster"
+)
+
+// KeepTTL preserves an existing key lifetime on Set, following Redis KEEPTTL semantics.
+const KeepTTL time.Duration = r.KeepTTL
+
+func escapeGlob(prefix string) string {
+	var b strings.Builder
+	for _, r := range prefix {
+		switch r {
+		case '*', '?', '[', ']', '\\':
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

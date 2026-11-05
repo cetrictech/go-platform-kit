@@ -9,3 +9,5 @@ HTTP requires a developer-defined route template, never a raw user path, and rec
 Official gRPC instrumentation can be supplied through grpcx Options/interceptors. A Prometheus-compatible reader can be provided via Config.MetricReader; the SDK does not own its HTTP listener. Avoid double instrumentation and global registration by the application and SDK simultaneously.
 
 GRPC builds a caller-owned gRPC stats handler for unary and streaming RPCs. Supply it through grpcx's StatsHandler field. It propagates W3C headers and records RPC durations by bounded gRPC status labels; raw method paths are excluded from metric labels. A real client/server test verifies matching trace IDs.
+
+`EndpointURL` is an HTTPS collector base URL; providers append `/v1/traces` and `/v1/metrics` separately. `OTLPHTTPClient` supplies caller-owned custom TLS roots or transport. A real local TLS OTLP receiver test decodes protobuf trace/metric export requests and verifies Flush/Shutdown delivery. Retry, breaker/bulkhead and worker instrumentation uses the core `instrument.Hook` without importing OpenTelemetry into core.

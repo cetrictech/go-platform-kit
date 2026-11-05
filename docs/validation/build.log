@@ -7,4 +7,5 @@ Module: messaging/kafka/sarama
 Module: grpcx
 Module: spiffe
 Module: observability
+Module: security/jwt
 Module: integration

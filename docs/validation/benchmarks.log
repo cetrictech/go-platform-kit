@@ -1,109 +1,115 @@
 Module: .
 PASS
-ok  	github.com/cetrictech/go-platform-kit/clock	0.244s
+ok  	github.com/cetrictech/go-platform-kit/clock	0.406s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/config	0.342s
+ok  	github.com/cetrictech/go-platform-kit/config	0.415s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/database
 cpu: Apple M3 Pro
-BenchmarkStructScanning-11    	 7379505	       157.9 ns/op	      56 B/op	       5 allocs/op
+BenchmarkStructScanning-11    	     100	       698.3 ns/op	      55 B/op	       4 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/database	1.404s
+ok  	github.com/cetrictech/go-platform-kit/database	0.411s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/encodingx
 cpu: Apple M3 Pro
-BenchmarkJSON-11    	 3289831	       388.9 ns/op	      72 B/op	       5 allocs/op
+BenchmarkJSON-11    	     100	      2300 ns/op	     211 B/op	       5 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/encodingx	1.576s
+ok  	github.com/cetrictech/go-platform-kit/encodingx	0.403s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/errors
 cpu: Apple M3 Pro
-BenchmarkConstruction-11    	29757106	        41.57 ns/op	     176 B/op	       1 allocs/op
+BenchmarkConstruction-11    	     100	       130.4 ns/op	     176 B/op	       1 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/errors	1.508s
+ok  	github.com/cetrictech/go-platform-kit/errors	0.598s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/health	0.281s
+ok  	github.com/cetrictech/go-platform-kit/health	0.413s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.294s
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	0.561s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.375s
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.456s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/id	0.254s
+ok  	github.com/cetrictech/go-platform-kit/id	0.400s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/idempotency	0.369s
+ok  	github.com/cetrictech/go-platform-kit/idempotency	0.457s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/instrument	0.267s
+ok  	github.com/cetrictech/go-platform-kit/instrument	0.423s
+PASS
+ok  	github.com/cetrictech/go-platform-kit/internal/consumerlife	0.388s
 ?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
 PASS
-ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.248s
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	0.405s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/logger
 cpu: Apple M3 Pro
-BenchmarkJSON-11    	  837945	      1428 ns/op	      72 B/op	       6 allocs/op
+BenchmarkJSON-11    	     100	      3705 ns/op	      19 B/op	       0 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/logger	1.539s
+ok  	github.com/cetrictech/go-platform-kit/logger	0.419s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/messaging/kafka
 cpu: Apple M3 Pro
-BenchmarkConsumerProcessing-11    	102876952	        11.69 ns/op	       0 B/op	       0 allocs/op
+BenchmarkConsumerProcessing-11    	     100	        24.58 ns/op	       0 B/op	       0 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	1.457s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	0.479s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.254s
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	0.457s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/pagination
 cpu: Apple M3 Pro
-BenchmarkCursor-11    	 1025185	      1198 ns/op	    1296 B/op	      14 allocs/op
+BenchmarkCursor-11    	     100	      5308 ns/op	    1540 B/op	      15 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/pagination	1.510s
+ok  	github.com/cetrictech/go-platform-kit/pagination	0.416s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.299s
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	0.433s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/resilience	0.239s
+ok  	github.com/cetrictech/go-platform-kit/resilience	0.440s
 goos: darwin
 goarch: arm64
 pkg: github.com/cetrictech/go-platform-kit/response
 cpu: Apple M3 Pro
-BenchmarkSerialization-11    	  884311	      1234 ns/op	    1544 B/op	      17 allocs/op
+BenchmarkSerialization-11    	     100	      8188 ns/op	    1829 B/op	      18 allocs/op
 PASS
-ok  	github.com/cetrictech/go-platform-kit/response	1.480s
+ok  	github.com/cetrictech/go-platform-kit/response	0.448s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/retry	0.273s
+ok  	github.com/cetrictech/go-platform-kit/retry	0.382s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/security	0.450s
+ok  	github.com/cetrictech/go-platform-kit/security	0.390s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/validation	0.314s
+ok  	github.com/cetrictech/go-platform-kit/validation	0.451s
 PASS
-ok  	github.com/cetrictech/go-platform-kit/worker	0.265s
+ok  	github.com/cetrictech/go-platform-kit/worker	0.590s
 Module: database/postgres
 PASS
-ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.368s
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.458s
 Module: database/mysql
 PASS
-ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.295s
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	0.448s
 Module: cache/redis
 PASS
-ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.437s
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.512s
 Module: messaging/kafka/franz
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.349s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.677s
 Module: messaging/kafka/sarama
 PASS
-ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.328s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.548s
 Module: grpcx
 PASS
-ok  	github.com/cetrictech/go-platform-kit/grpcx	0.494s
+ok  	github.com/cetrictech/go-platform-kit/grpcx	0.510s
 Module: spiffe
 PASS
-ok  	github.com/cetrictech/go-platform-kit/spiffe	0.391s
+ok  	github.com/cetrictech/go-platform-kit/spiffe	0.594s
 Module: observability
 PASS
-ok  	github.com/cetrictech/go-platform-kit/observability	0.508s
+ok  	github.com/cetrictech/go-platform-kit/observability	0.538s
+Module: security/jwt
+PASS
+ok  	github.com/cetrictech/go-platform-kit/security/jwt	0.425s
 Module: integration
 ?   	github.com/cetrictech/go-platform-kit/integration	[no test files]
+?   	github.com/cetrictech/go-platform-kit/integration/cmd/fixtures	[no test files]

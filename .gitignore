@@ -29,3 +29,6 @@ profile.cov
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Generated, ephemeral local TLS fixture material
+integration/.runtime/

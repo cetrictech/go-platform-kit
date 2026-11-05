@@ -2,7 +2,7 @@
 
 Proposed initial development version: v0.1.0. No release is published automatically. The code is pre-1.0 and still requires qualification; do not label it production ready solely from unit results.
 
-The root uses tags such as v0.1.0. Each nested module requires its own directory-prefixed tag: database/postgres/v0.1.0, database/mysql/v0.1.0, cache/redis/v0.1.0, messaging/kafka/franz/v0.1.0, messaging/kafka/sarama/v0.1.0, grpcx/v0.1.0, spiffe/v0.1.0, observability/v0.1.0. A root tag does not release nested modules.
+The root uses tags such as v0.1.0. Each nested module requires its own directory-prefixed tag: database/postgres/v0.1.0, database/mysql/v0.1.0, cache/redis/v0.1.0, messaging/kafka/franz/v0.1.0, messaging/kafka/sarama/v0.1.0, grpcx/v0.1.0, spiffe/v0.1.0, observability/v0.1.0, security/jwt/v0.1.0. A root tag does not release nested modules.
 
 | Core | Adapter versions | Minimum Go | Validation toolchain |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ After explicit release authorization and successful validation:
 
 ```sh
 git tag v0.1.0
-for m in database/postgres database/mysql cache/redis messaging/kafka/franz messaging/kafka/sarama grpcx spiffe observability; do
+for m in database/postgres database/mysql cache/redis messaging/kafka/franz messaging/kafka/sarama grpcx spiffe observability security/jwt; do
   git tag "$m/v0.1.0"
 done
 # Review tags before explicitly pushing them.

@@ -1,0 +1,4 @@
+=== RUN   TestReplicaSelectionAndBackendRecovery
+--- PASS: TestReplicaSelectionAndBackendRecovery (0.14s)
+PASS
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	1.778s

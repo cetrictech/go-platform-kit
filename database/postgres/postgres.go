@@ -14,11 +14,16 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"log/slog"
+	"sync"
 	"time"
 )
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
+	Hooks                                                  db.Hooks
+	QueryLogger                                            *slog.Logger
+	ReadOnly                                               bool
 	AllowPlaintext                                         bool
 	Observer                                               instrument.Hook
 	URL                                                    string
@@ -34,6 +39,7 @@ type Config struct {
 type Client struct {
 	pool    *pgxpool.Pool
 	timeout time.Duration
+	hooks   db.Hooks
 }
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
@@ -79,6 +85,9 @@ func New(ctx context.Context, c Config) (*Client, error) {
 			return nil, errors.New("postgres: TLS verification required")
 		}
 		p.ConnConfig.TLSConfig = c.TLS.Clone()
+		if p.ConnConfig.TLSConfig.ServerName == "" {
+			p.ConnConfig.TLSConfig.ServerName = p.ConnConfig.Host
+		}
 		p.ConnConfig.Fallbacks = nil
 	}
 	if c.ApplicationName != "" {
@@ -90,8 +99,11 @@ func New(ctx context.Context, c Config) (*Client, error) {
 	if c.AfterConnect != nil {
 		p.AfterConnect = func(ctx context.Context, _ *pgx.Conn) error { return c.AfterConnect(ctx) }
 	}
-	if c.Observer != nil {
-		p.ConnConfig.Tracer = queryTracer{c.Observer}
+	if c.ReadOnly {
+		p.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
+	}
+	if c.Observer != nil || c.QueryLogger != nil || c.Hooks.AfterQuery != nil {
+		p.ConnConfig.Tracer = queryTracer{hook: c.Observer, hooks: c.Hooks, logger: c.QueryLogger}
 	}
 	pool, e := pgxpool.NewWithConfig(ctx, p)
 	if e != nil {
@@ -101,7 +113,7 @@ func New(ctx context.Context, c Config) (*Client, error) {
 		pool.Close()
 		return nil, Classify(e)
 	}
-	return &Client{pool, c.QueryTimeout}, nil
+	return &Client{pool: pool, timeout: c.QueryTimeout, hooks: c.Hooks}, nil
 }
 
 // Native provides an explicit advanced driver escape hatch; preserve SDK ownership rules.
@@ -143,7 +155,7 @@ func (c *Client) ctx(ctx context.Context) (context.Context, context.CancelFunc) 
 func (c *Client) Exec(ctx context.Context, q string, args ...any) (Result, error) {
 	ctx, cancel := c.ctx(ctx)
 	defer cancel()
-	r, e := c.pool.Exec(ctx, q, args...)
+	r, e := c.pool.Exec(ctx, q, bindArgs(args)...)
 	return Result{r.RowsAffected(), r.String()}, Classify(e)
 }
 
@@ -174,7 +186,7 @@ func (r *rows) Close() error { r.Rows.Close(); r.cancel(); return r.Err() }
 // Query opens a row stream; the caller must close it.
 func (c *Client) Query(ctx context.Context, q string, args ...any) (db.Rows, error) {
 	ctx, cancel := c.ctx(ctx)
-	r, e := c.pool.Query(ctx, q, args...)
+	r, e := c.pool.Query(ctx, q, bindArgs(args)...)
 	if e != nil {
 		cancel()
 		return nil, Classify(e)
@@ -182,22 +194,35 @@ func (c *Client) Query(ctx context.Context, q string, args ...any) (db.Rows, err
 	return &rows{r, cancel}, nil
 }
 
-type row struct{ scan func(...any) error }
+type row struct {
+	scan func(...any) error
+	mu   sync.Mutex
+	used bool
+}
 
-func (r row) Scan(a ...any) error { return r.scan(a...) }
+func (r *row) Scan(a ...any) error {
+	r.mu.Lock()
+	if r.used {
+		r.mu.Unlock()
+		return errors.New("postgres: row already scanned")
+	}
+	r.used = true
+	r.mu.Unlock()
+	return r.scan(a...)
+}
 
 // QueryRow returns a single-row scanner; call Scan to execute or observe its error.
 func (c *Client) QueryRow(ctx context.Context, q string, args ...any) db.Row {
-	return row{func(dst ...any) error {
+	return &row{scan: func(dst ...any) error {
 		ctx, cancel := c.ctx(ctx)
 		defer cancel()
-		return Classify(c.pool.QueryRow(ctx, q, args...).Scan(dst...))
+		return Classify(c.pool.QueryRow(ctx, q, bindArgs(args)...).Scan(dst...))
 	}}
 }
 
 // Get reads one value into the requested representation.
 func (c *Client) Get(ctx context.Context, dst any, q string, args ...any) error {
-	r, e := c.Query(ctx, q, args...)
+	r, e := c.Query(ctx, q, bindArgs(args)...)
 	if e != nil {
 		return e
 	}
@@ -207,7 +232,7 @@ func (c *Client) Get(ctx context.Context, dst any, q string, args ...any) error 
 
 // Select scans all result rows into a slice pointer.
 func (c *Client) Select(ctx context.Context, dst any, q string, args ...any) error {
-	r, e := c.Query(ctx, q, args...)
+	r, e := c.Query(ctx, q, bindArgs(args)...)
 	if e != nil {
 		return e
 	}
@@ -222,10 +247,19 @@ type TxOptions struct {
 }
 
 // Tx owns a transaction; do not share it concurrently.
-type Tx struct{ tx pgx.Tx }
+type Tx struct {
+	tx    pgx.Tx
+	hooks db.Hooks
+}
 
 // BeginTx opens a transaction that the caller must commit or roll back.
 func (c *Client) BeginTx(ctx context.Context, o TxOptions) (*Tx, error) {
+	if c.hooks.BeforeBegin != nil {
+		if e := c.hooks.BeforeBegin(ctx); e != nil {
+			return nil, e
+		}
+	}
+	start := time.Now()
 	iso := pgx.TxIsoLevel(o.Isolation)
 	switch iso {
 	case "", pgx.ReadCommitted, pgx.RepeatableRead, pgx.Serializable, pgx.ReadUncommitted:
@@ -237,30 +271,45 @@ func (c *Client) BeginTx(ctx context.Context, o TxOptions) (*Tx, error) {
 		mode = pgx.ReadOnly
 	}
 	t, e := c.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: iso, AccessMode: mode})
+	db.ReportTransaction(ctx, c.hooks, "begin", start, e)
 	if e != nil {
 		return nil, Classify(e)
 	}
-	return &Tx{t}, nil
+	return &Tx{tx: t, hooks: c.hooks}, nil
 }
 
 // Native provides an explicit advanced driver escape hatch; preserve SDK ownership rules.
 func (t *Tx) Native() pgx.Tx { return t.tx }
 
 // Commit commits the transaction and reports commit errors.
-func (t *Tx) Commit(ctx context.Context) error { return Classify(t.tx.Commit(ctx)) }
+func (t *Tx) Commit(ctx context.Context) error {
+	start := time.Now()
+	e := t.tx.Commit(ctx)
+	if !errors.Is(e, pgx.ErrTxClosed) {
+		db.ReportTransaction(ctx, t.hooks, "commit", start, e)
+	}
+	return Classify(e)
+}
 
 // Rollback rolls back the transaction.
-func (t *Tx) Rollback(ctx context.Context) error { return Classify(t.tx.Rollback(ctx)) }
+func (t *Tx) Rollback(ctx context.Context) error {
+	start := time.Now()
+	e := t.tx.Rollback(ctx)
+	if !errors.Is(e, pgx.ErrTxClosed) {
+		db.ReportTransaction(ctx, t.hooks, "rollback", start, e)
+	}
+	return Classify(e)
+}
 
 // Exec executes a parameterized SQL command and returns its result.
 func (t *Tx) Exec(ctx context.Context, q string, a ...any) (Result, error) {
-	r, e := t.tx.Exec(ctx, q, a...)
+	r, e := t.tx.Exec(ctx, q, bindArgs(a)...)
 	return Result{r.RowsAffected(), r.String()}, Classify(e)
 }
 
 // Query opens a row stream; the caller must close it.
 func (t *Tx) Query(ctx context.Context, q string, a ...any) (db.Rows, error) {
-	r, e := t.tx.Query(ctx, q, a...)
+	r, e := t.tx.Query(ctx, q, bindArgs(a)...)
 	if e != nil {
 		return nil, Classify(e)
 	}
@@ -269,12 +318,12 @@ func (t *Tx) Query(ctx context.Context, q string, a ...any) (db.Rows, error) {
 
 // QueryRow returns a single-row scanner; call Scan to execute or observe its error.
 func (t *Tx) QueryRow(ctx context.Context, q string, a ...any) db.Row {
-	return row{func(dst ...any) error { return Classify(t.tx.QueryRow(ctx, q, a...).Scan(dst...)) }}
+	return &row{scan: func(dst ...any) error { return Classify(t.tx.QueryRow(ctx, q, bindArgs(a)...).Scan(dst...)) }}
 }
 
 // Get reads one value into the requested representation.
 func (t *Tx) Get(ctx context.Context, d any, q string, a ...any) error {
-	r, e := t.Query(ctx, q, a...)
+	r, e := t.Query(ctx, q, bindArgs(a)...)
 	if e != nil {
 		return e
 	}
@@ -284,7 +333,7 @@ func (t *Tx) Get(ctx context.Context, d any, q string, a ...any) error {
 
 // Select scans all result rows into a slice pointer.
 func (t *Tx) Select(ctx context.Context, d any, q string, a ...any) error {
-	r, e := t.Query(ctx, q, a...)
+	r, e := t.Query(ctx, q, bindArgs(a)...)
 	if e != nil {
 		return e
 	}
@@ -308,6 +357,9 @@ func within(ctx context.Context, t *Tx, fn func(*Tx) error) (err error) {
 
 // WithinTx runs a callback transactionally, rolling back on failure or panic.
 func (c *Client) WithinTx(ctx context.Context, o TxOptions, fn func(*Tx) error) error {
+	if fn == nil {
+		return errors.New("postgres: nil transaction callback")
+	}
 	t, e := c.BeginTx(ctx, o)
 	if e != nil {
 		return e
@@ -317,11 +369,16 @@ func (c *Client) WithinTx(ctx context.Context, o TxOptions, fn func(*Tx) error) 
 
 // WithinTx opens a nested savepoint, using pgx logical transactions.
 func (t *Tx) WithinTx(ctx context.Context, fn func(*Tx) error) error {
+	if fn == nil {
+		return errors.New("postgres: nil transaction callback")
+	}
+	start := time.Now()
 	n, e := t.tx.Begin(ctx)
+	db.ReportTransaction(ctx, t.hooks, "savepoint", start, e)
 	if e != nil {
 		return e
 	}
-	return within(ctx, &Tx{n}, fn)
+	return within(ctx, &Tx{tx: n, hooks: t.hooks}, fn)
 }
 
 // Operation contains a parameterized SQL command and its arguments.
@@ -332,9 +389,11 @@ type Operation struct {
 
 // Batch sends commands in one protocol batch; all commands execute in an implicit transaction.
 func (c *Client) Batch(ctx context.Context, ops []Operation) (out []Result, err error) {
+	ctx, cancel := c.ctx(ctx)
+	defer cancel()
 	b := &pgx.Batch{}
 	for _, o := range ops {
-		b.Queue(o.SQL, o.Args...)
+		b.Queue(o.SQL, bindArgs(o.Args)...)
 	}
 	r := c.pool.SendBatch(ctx, b)
 	defer func() { err = errors.Join(err, r.Close()) }()
@@ -350,6 +409,8 @@ func (c *Client) Batch(ctx context.Context, ops []Operation) (out []Result, err 
 
 // CopyFrom performs PostgreSQL COPY ingestion with safely quoted identifiers.
 func (c *Client) CopyFrom(ctx context.Context, table []string, columns []string, values [][]any) (int64, error) {
+	ctx, cancel := c.ctx(ctx)
+	defer cancel()
 	n, e := c.pool.CopyFrom(ctx, pgx.Identifier(table), columns, pgx.CopyFromRows(values))
 	return n, Classify(e)
 }

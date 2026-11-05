@@ -32,6 +32,9 @@ func Keyset(dialect string, allow map[string]string, sorts []Sort, values []any,
 	if start < 0 || len(sorts) == 0 || !sorts[len(sorts)-1].Unique || len(values) != 0 && len(values) != len(sorts) {
 		return out, errors.New("pagination: invalid sort or key arity")
 	}
+	if len(values) > 0 && values[len(values)-1] == nil {
+		return out, errors.New("pagination: unique tie-breaker must be non-null")
+	}
 	quote := "\""
 	if dialect == "mysql" {
 		quote = "`"

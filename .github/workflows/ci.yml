@@ -46,6 +46,8 @@ jobs:
       - run: make services
       - run: make integration
       - if: always()
-        run: docker compose -f integration/compose.yaml logs --no-color
+        run: |
+          docker compose -f integration/compose.yaml logs --no-color
+          GPK_TLS_DIR="$PWD/integration/.runtime/certs" docker compose -f integration/extended-compose.yaml logs --no-color
       - if: always()
         run: make services-down

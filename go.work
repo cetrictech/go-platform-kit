@@ -12,5 +12,6 @@ use (
 	./messaging/kafka/franz
 	./messaging/kafka/sarama
 	./observability
+	./security/jwt
 	./spiffe
 )

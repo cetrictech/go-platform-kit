@@ -18,7 +18,9 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"log/slog"
+	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -32,6 +34,8 @@ type Config struct {
 	OTLP                          bool
 	EndpointURL                   string
 	Headers                       map[string]string
+	// OTLPHTTPClient remains caller-owned and supplies custom TLS roots or transport.
+	OTLPHTTPClient *http.Client
 }
 
 // Providers owns OpenTelemetry trace and metric providers without global registration.
@@ -43,7 +47,7 @@ type Providers struct {
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
 func New(ctx context.Context, c Config) (*Providers, error) {
-	if c.Service == "" || c.SampleRatio < 0 || c.SampleRatio > 1 {
+	if c.Service == "" || math.IsNaN(c.SampleRatio) || math.IsInf(c.SampleRatio, 0) || c.SampleRatio < 0 || c.SampleRatio > 1 {
 		return nil, errors.New("observability: service and valid sampling ratio required")
 	}
 	if c.EndpointURL != "" && !strings.HasPrefix(c.EndpointURL, "https://") {
@@ -58,8 +62,11 @@ func New(ctx context.Context, c Config) (*Providers, error) {
 	if c.OTLP {
 		if exp == nil {
 			o := []otlptracehttp.Option{}
+			if c.OTLPHTTPClient != nil {
+				o = append(o, otlptracehttp.WithHTTPClient(c.OTLPHTTPClient))
+			}
 			if c.EndpointURL != "" {
-				o = append(o, otlptracehttp.WithEndpointURL(c.EndpointURL))
+				o = append(o, otlptracehttp.WithEndpointURL(otlpEndpoint(c.EndpointURL, "traces")))
 			}
 			if len(c.Headers) > 0 {
 				o = append(o, otlptracehttp.WithHeaders(c.Headers))
@@ -71,8 +78,11 @@ func New(ctx context.Context, c Config) (*Providers, error) {
 		}
 		if reader == nil {
 			o := []otlpmetrichttp.Option{}
+			if c.OTLPHTTPClient != nil {
+				o = append(o, otlpmetrichttp.WithHTTPClient(c.OTLPHTTPClient))
+			}
 			if c.EndpointURL != "" {
-				o = append(o, otlpmetrichttp.WithEndpointURL(c.EndpointURL))
+				o = append(o, otlpmetrichttp.WithEndpointURL(otlpEndpoint(c.EndpointURL, "metrics")))
 			}
 			if len(c.Headers) > 0 {
 				o = append(o, otlpmetrichttp.WithHeaders(c.Headers))
@@ -236,4 +246,14 @@ func Consumer(tr trace.Tracer, prop propagation.TextMapPropagator, h kafka.Handl
 		}
 		return e
 	}
+}
+
+// EndpointURL is the collector base URL; signal paths are appended explicitly.
+func otlpEndpoint(base, signal string) string {
+	u, err := url.Parse(base)
+	if err != nil {
+		return base
+	}
+	u.Path = strings.TrimRight(u.Path, "/") + "/v1/" + signal
+	return u.String()
 }

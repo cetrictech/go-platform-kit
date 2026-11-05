@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"errors"
 	s "github.com/IBM/sarama"
+	"github.com/cetrictech/go-platform-kit/internal/consumerlife"
 	"github.com/cetrictech/go-platform-kit/messaging/kafka"
 	"github.com/xdg-go/scram"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,6 +17,13 @@ import (
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
+	// DialContext supplies network connections, including advertised broker addresses.
+	DialContext                    func(context.Context, string, string) (net.Conn, error)
+	Credentials                    kafka.CredentialProvider
+	OAuthToken                     kafka.TokenProvider
+	CredentialTimeout              time.Duration
+	AutoCommit                     bool
+	CommitInterval                 time.Duration
 	Workers                        int
 	ManualPartition                bool
 	SASL, Username, Password       string
@@ -34,6 +43,21 @@ type Config struct {
 }
 
 func config(c Config) (*s.Config, error) {
+	if c.CredentialTimeout < 0 || c.CommitInterval < 0 {
+		return nil, errors.New("sarama: invalid authentication or commit timeout")
+	}
+	if c.Credentials != nil {
+		if c.SASL == "PLAIN" {
+			return nil, errors.New("sarama: rotating PLAIN is not supported by this driver; use SCRAM or OAuth")
+		}
+		ctx, cancel := kafka.AuthenticationContext(context.Background(), c.CredentialTimeout)
+		v, e := c.Credentials(ctx)
+		cancel()
+		if e != nil {
+			return nil, e
+		}
+		c.Username, c.Password = v.Username, v.Password
+	}
 	if len(c.Brokers) == 0 {
 		return nil, errors.New("sarama: brokers required")
 	}
@@ -120,10 +144,20 @@ func config(c Config) (*s.Config, error) {
 			cfg.Net.SASL.Mechanism = s.SASLTypePlaintext
 		case "SCRAM-SHA-256":
 			cfg.Net.SASL.Mechanism = s.SASLTypeSCRAMSHA256
-			cfg.Net.SASL.SCRAMClientGeneratorFunc = func() s.SCRAMClient { return &scramClient{hash: scram.SHA256} }
+			cfg.Net.SASL.SCRAMClientGeneratorFunc = func() s.SCRAMClient {
+				return &scramClient{hash: scram.SHA256, provider: c.Credentials, timeout: c.CredentialTimeout}
+			}
 		case "SCRAM-SHA-512":
 			cfg.Net.SASL.Mechanism = s.SASLTypeSCRAMSHA512
-			cfg.Net.SASL.SCRAMClientGeneratorFunc = func() s.SCRAMClient { return &scramClient{hash: scram.SHA512} }
+			cfg.Net.SASL.SCRAMClientGeneratorFunc = func() s.SCRAMClient {
+				return &scramClient{hash: scram.SHA512, provider: c.Credentials, timeout: c.CredentialTimeout}
+			}
+		case "OAUTHBEARER":
+			if c.OAuthToken == nil {
+				return nil, errors.New("sarama: OAuth token provider required")
+			}
+			cfg.Net.SASL.Mechanism = s.SASLTypeOAuth
+			cfg.Net.SASL.TokenProvider = oauthProvider{provider: c.OAuthToken, timeout: c.CredentialTimeout}
 		default:
 			return nil, errors.New("sarama: unsupported SASL mechanism")
 		}
@@ -144,6 +178,14 @@ func config(c Config) (*s.Config, error) {
 	}
 	if !cfg.Net.TLS.Enable && !c.AllowPlaintext {
 		return nil, errors.New("sarama: TLS required; explicitly opt into plaintext for local development")
+	}
+	cfg.Consumer.Offsets.AutoCommit.Enable = c.AutoCommit
+	if c.CommitInterval > 0 {
+		cfg.Consumer.Offsets.AutoCommit.Interval = c.CommitInterval
+	}
+	if c.DialContext != nil {
+		cfg.Net.Proxy.Enable = true
+		cfg.Net.Proxy.Dialer = networkDialer{dial: c.DialContext, timeout: cfg.Net.DialTimeout}
 	}
 	return cfg, cfg.Validate()
 }
@@ -209,9 +251,9 @@ func (p *Producer) Publish(ctx context.Context, m kafka.Message) error {
 		return e
 	}
 	d := &delivery{result: make(chan error, 1)}
-	msg := &s.ProducerMessage{Topic: m.Topic, Key: s.ByteEncoder(m.Key), Value: s.ByteEncoder(m.Value), Timestamp: m.Timestamp, Partition: m.Partition, Metadata: d}
+	msg := &s.ProducerMessage{Topic: m.Topic, Key: s.ByteEncoder(append([]byte(nil), m.Key...)), Value: s.ByteEncoder(append([]byte(nil), m.Value...)), Timestamp: m.Timestamp, Partition: m.Partition, Metadata: d}
 	for k, v := range m.Headers {
-		msg.Headers = append(msg.Headers, s.RecordHeader{Key: []byte(k), Value: v})
+		msg.Headers = append(msg.Headers, s.RecordHeader{Key: []byte(k), Value: append([]byte(nil), v...)})
 	}
 	p.mu.RLock()
 	if p.closed {
@@ -273,10 +315,11 @@ func (p *Producer) Close() error {
 
 // Consumer owns a Kafka consumer group client.
 type Consumer struct {
-	workers int
-	group   s.ConsumerGroup
-	topics  []string
-	running atomic.Bool
+	workers    int
+	group      s.ConsumerGroup
+	topics     []string
+	life       consumerlife.Session
+	autoCommit bool
 }
 
 // NewConsumer constructs an owned consumer group client.
@@ -298,14 +341,15 @@ func NewConsumer(c Config) (*Consumer, error) {
 	if e != nil {
 		return nil, e
 	}
-	return &Consumer{group: g, topics: append([]string(nil), c.Topics...), workers: c.Workers}, nil
+	return &Consumer{group: g, topics: append([]string(nil), c.Topics...), workers: c.Workers, autoCommit: c.AutoCommit}, nil
 }
 
 type handler struct {
-	sem    chan struct{}
-	h      kafka.Handler
-	err    chan error
-	cancel context.CancelFunc
+	autoCommit bool
+	sem        chan struct{}
+	h          kafka.Handler
+	err        chan error
+	cancel     context.CancelFunc
 }
 
 func (*handler) Setup(s.ConsumerGroupSession) error   { return nil }
@@ -314,7 +358,7 @@ func (h *handler) ConsumeClaim(session s.ConsumerGroupSession, claim s.ConsumerG
 	for {
 		select {
 		case <-session.Context().Done():
-			return session.Context().Err()
+			return nil
 		case m, ok := <-claim.Messages():
 			if !ok {
 				return nil
@@ -330,20 +374,28 @@ func (h *handler) ConsumeClaim(session s.ConsumerGroupSession, claim s.ConsumerG
 				default:
 				}
 				h.cancel()
-				return e
+				// The failure is delivered through h.err; returning it again makes
+				// Sarama enqueue a stale duplicate for the next Consume call.
+				return nil
 			}
 			session.MarkMessage(m, "")
-			session.Commit()
+			if !h.autoCommit {
+				session.Commit()
+			}
 		}
 	}
 }
 
 // Consume commits after successful handling. Sarama reports commit errors through its group error channel.
 func (c *Consumer) Consume(ctx context.Context, h kafka.Handler) error {
-	if h == nil || !c.running.CompareAndSwap(false, true) {
+	if h == nil {
 		return errors.New("sarama: invalid handler or already consuming")
 	}
-	defer c.running.Store(false)
+	ctx, finish, e := c.life.Begin(ctx)
+	if e != nil {
+		return e
+	}
+	defer finish()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	errs := make(chan error, 1)
@@ -370,7 +422,7 @@ func (c *Consumer) Consume(ctx context.Context, h kafka.Handler) error {
 	defer func() { cancel(); <-done }()
 	sem := make(chan struct{}, c.workers)
 	for {
-		e := c.group.Consume(ctx, c.topics, &handler{h: h, err: errs, cancel: cancel, sem: sem})
+		e := c.group.Consume(ctx, c.topics, &handler{h: h, err: errs, cancel: cancel, sem: sem, autoCommit: c.autoCommit})
 		select {
 		case failure := <-errs:
 			return failure
@@ -392,7 +444,11 @@ func (c *Consumer) Pause() { c.group.PauseAll() }
 func (c *Consumer) Resume() { c.group.ResumeAll() }
 
 // Close releases owned resources. See package documentation for shutdown ordering.
-func (c *Consumer) Close() error { return c.group.Close() }
+func (c *Consumer) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return c.CloseContext(ctx)
+}
 
 // Admin owns a Kafka administration client.
 type Admin struct{ admin s.ClusterAdmin }
@@ -472,9 +528,9 @@ func (p *Producer) PublishAsync(ctx context.Context, m kafka.Message, callback f
 		return e
 	}
 	d := &delivery{callback: callback}
-	msg := &s.ProducerMessage{Topic: m.Topic, Key: s.ByteEncoder(m.Key), Value: s.ByteEncoder(m.Value), Timestamp: m.Timestamp, Partition: m.Partition, Metadata: d}
+	msg := &s.ProducerMessage{Topic: m.Topic, Key: s.ByteEncoder(append([]byte(nil), m.Key...)), Value: s.ByteEncoder(append([]byte(nil), m.Value...)), Timestamp: m.Timestamp, Partition: m.Partition, Metadata: d}
 	for k, v := range m.Headers {
-		msg.Headers = append(msg.Headers, s.RecordHeader{Key: []byte(k), Value: v})
+		msg.Headers = append(msg.Headers, s.RecordHeader{Key: []byte(k), Value: append([]byte(nil), v...)})
 	}
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -524,4 +580,20 @@ func (h *handler) invoke(ctx context.Context, m kafka.Message) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// Sarama's proxy interface has no context parameter; preserve its configured bound.
+type networkDialer struct {
+	dial    func(context.Context, string, string) (net.Conn, error)
+	timeout time.Duration
+}
+
+func (d networkDialer) Dial(network, address string) (net.Conn, error) {
+	timeout := d.timeout
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return d.dial(ctx, network, address)
 }

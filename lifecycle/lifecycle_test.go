@@ -19,3 +19,24 @@ func TestRollback(t *testing.T) {
 		t.Fatal("idempotent stop")
 	}
 }
+
+type testResource struct{ closed *int }
+
+func (r testResource) Close() error { *r.closed++; return nil }
+func TestResourceFactoriesAndPartialCleanup(t *testing.T) {
+	ctx := context.Background()
+	m := Manager{}
+	first, partial := 0, 0
+	if e := m.RegisterResource("first", func(context.Context) (any, error) { return testResource{&first}, nil }); e != nil {
+		t.Fatal(e)
+	}
+	if e := m.RegisterResource("partial", func(context.Context) (any, error) { return testResource{&partial}, errors.New("failed init") }); e != nil {
+		t.Fatal(e)
+	}
+	if e := m.Start(ctx); e == nil || first != 1 || partial != 1 {
+		t.Fatal(first, partial, e)
+	}
+	if e := m.Stop(ctx); e != nil || first != 1 || partial != 1 {
+		t.Fatal(first, partial, e)
+	}
+}

@@ -10,11 +10,15 @@ import (
 	app "github.com/cetrictech/go-platform-kit/errors"
 	"github.com/cetrictech/go-platform-kit/instrument"
 	driver "github.com/go-sql-driver/mysql"
+	"log/slog"
 	"time"
 )
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
+	Hooks                                    db.Hooks
+	QueryLogger                              *slog.Logger
+	QueryTimeout                             time.Duration
 	AllowPlaintext                           bool
 	Observer                                 instrument.Hook
 	DSN                                      string
@@ -27,11 +31,14 @@ type Config struct {
 type Client struct {
 	db       *sql.DB
 	observer instrument.Hook
+	hooks    db.Hooks
+	logger   *slog.Logger
+	timeout  time.Duration
 }
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
 func New(ctx context.Context, c Config) (*Client, error) {
-	if c.DSN == "" || c.MaxOpenConnections < 0 || c.MaxIdleConnections < 0 || c.ConnectTimeout < 0 || c.MaxLifetime < 0 || c.MaxIdleTime < 0 {
+	if c.DSN == "" || c.MaxOpenConnections < 0 || c.MaxIdleConnections < 0 || c.ConnectTimeout < 0 || c.MaxLifetime < 0 || c.MaxIdleTime < 0 || c.QueryTimeout < 0 {
 		return nil, errors.New("mysql: invalid config")
 	}
 	cfg, e := driver.ParseDSN(c.DSN)
@@ -76,7 +83,7 @@ func New(ctx context.Context, c Config) (*Client, error) {
 		s.Close()
 		return nil, Classify(e)
 	}
-	return &Client{s, c.Observer}, nil
+	return &Client{db: s, observer: c.Observer, hooks: c.Hooks, logger: c.QueryLogger, timeout: c.QueryTimeout}, nil
 }
 
 // Native provides an explicit advanced driver escape hatch; preserve SDK ownership rules.
@@ -93,7 +100,7 @@ func (c *Client) Stats() sql.DBStats { return c.db.Stats() }
 
 // Exec executes a parameterized SQL command and returns its result.
 func (c *Client) Exec(ctx context.Context, q string, a ...any) (sql.Result, error) {
-	ctx, done := instrument.Start(ctx, c.observer, "mysql.exec")
+	ctx, done := startQuery(ctx, c.observer, c.hooks, c.logger, c.timeout, "mysql.exec", q)
 	r, e := c.db.ExecContext(ctx, q, a...)
 	done(e)
 	return r, Classify(e)
@@ -101,7 +108,7 @@ func (c *Client) Exec(ctx context.Context, q string, a ...any) (sql.Result, erro
 
 // Query opens a row stream; the caller must close it.
 func (c *Client) Query(ctx context.Context, q string, a ...any) (db.Rows, error) {
-	ctx, done := instrument.Start(ctx, c.observer, "mysql.query")
+	ctx, done := startQuery(ctx, c.observer, c.hooks, c.logger, c.timeout, "mysql.query", q)
 	r, e := c.db.QueryContext(ctx, q, a...)
 	if e != nil {
 		done(e)
@@ -112,7 +119,7 @@ func (c *Client) Query(ctx context.Context, q string, a ...any) (db.Rows, error)
 
 // QueryRow returns a single-row scanner; call Scan to execute or observe its error.
 func (c *Client) QueryRow(ctx context.Context, q string, a ...any) db.Row {
-	ctx, done := instrument.Start(ctx, c.observer, "mysql.query_row")
+	ctx, done := startQuery(ctx, c.observer, c.hooks, c.logger, c.timeout, "mysql.query_row", q)
 	return observedRow{c.db.QueryRowContext(ctx, q, a...), done}
 }
 
@@ -137,8 +144,14 @@ func (c *Client) Select(ctx context.Context, dst any, q string, a ...any) error 
 }
 
 // Prepare creates an owned prepared statement that must be closed.
-func (c *Client) Prepare(ctx context.Context, q string) (*sql.Stmt, error) {
-	return c.db.PrepareContext(ctx, q)
+func (c *Client) Prepare(ctx context.Context, q string) (*Statement, error) {
+	ctx, done := startQuery(ctx, c.observer, c.hooks, c.logger, c.timeout, "mysql.prepare", q)
+	stmt, e := c.db.PrepareContext(ctx, q)
+	done(e)
+	if e != nil {
+		return nil, Classify(e)
+	}
+	return &Statement{statement: stmt, client: c, query: q}, nil
 }
 
 // TxOptions configures transaction isolation and access.
@@ -151,29 +164,39 @@ type TxOptions struct {
 type Tx struct {
 	tx       *sql.Tx
 	observer instrument.Hook
+	hooks    db.Hooks
+	logger   *slog.Logger
+	timeout  time.Duration
 }
 
 // BeginTx opens a transaction that the caller must commit or roll back.
 func (c *Client) BeginTx(ctx context.Context, o TxOptions) (*Tx, error) {
+	if c.hooks.BeforeBegin != nil {
+		if e := c.hooks.BeforeBegin(ctx); e != nil {
+			return nil, e
+		}
+	}
+	start := time.Now()
 	t, e := c.db.BeginTx(ctx, &sql.TxOptions{Isolation: o.Isolation, ReadOnly: o.ReadOnly})
+	db.ReportTransaction(ctx, c.hooks, "begin", start, e)
 	if e != nil {
 		return nil, Classify(e)
 	}
-	return &Tx{t, c.observer}, nil
+	return &Tx{tx: t, observer: c.observer, hooks: c.hooks, logger: c.logger, timeout: c.timeout}, nil
 }
 
 // Native provides an explicit advanced driver escape hatch; preserve SDK ownership rules.
 func (t *Tx) Native() *sql.Tx { return t.tx }
 
 // Commit commits the transaction and reports commit errors.
-func (t *Tx) Commit() error { return Classify(t.tx.Commit()) }
+func (t *Tx) Commit() error { return t.CommitContext(context.Background()) }
 
 // Rollback rolls back the transaction.
-func (t *Tx) Rollback() error { return Classify(t.tx.Rollback()) }
+func (t *Tx) Rollback() error { return t.RollbackContext(context.Background()) }
 
 // Exec executes a parameterized SQL command and returns its result.
 func (t *Tx) Exec(ctx context.Context, q string, a ...any) (sql.Result, error) {
-	ctx, done := instrument.Start(ctx, t.observer, "mysql.exec")
+	ctx, done := startQuery(ctx, t.observer, t.hooks, t.logger, t.timeout, "mysql.exec", q)
 	r, e := t.tx.ExecContext(ctx, q, a...)
 	done(e)
 	return r, Classify(e)
@@ -181,7 +204,7 @@ func (t *Tx) Exec(ctx context.Context, q string, a ...any) (sql.Result, error) {
 
 // Query opens a row stream; the caller must close it.
 func (t *Tx) Query(ctx context.Context, q string, a ...any) (db.Rows, error) {
-	ctx, done := instrument.Start(ctx, t.observer, "mysql.query")
+	ctx, done := startQuery(ctx, t.observer, t.hooks, t.logger, t.timeout, "mysql.query", q)
 	r, e := t.tx.QueryContext(ctx, q, a...)
 	if e != nil {
 		done(e)
@@ -192,7 +215,7 @@ func (t *Tx) Query(ctx context.Context, q string, a ...any) (db.Rows, error) {
 
 // QueryRow returns a single-row scanner; call Scan to execute or observe its error.
 func (t *Tx) QueryRow(ctx context.Context, q string, a ...any) db.Row {
-	ctx, done := instrument.Start(ctx, t.observer, "mysql.query_row")
+	ctx, done := startQuery(ctx, t.observer, t.hooks, t.logger, t.timeout, "mysql.query_row", q)
 	return observedRow{t.tx.QueryRowContext(ctx, q, a...), done}
 }
 
@@ -218,12 +241,15 @@ func (t *Tx) Select(ctx context.Context, d any, q string, a ...any) error {
 
 // WithinTx runs a callback transactionally, rolling back on failure or panic.
 func (c *Client) WithinTx(ctx context.Context, o TxOptions, fn func(*Tx) error) (err error) {
+	if fn == nil {
+		return errors.New("mysql: nil transaction callback")
+	}
 	t, e := c.BeginTx(ctx, o)
 	if e != nil {
 		return e
 	}
 	defer func() {
-		e := t.Rollback()
+		e := t.RollbackContext(context.WithoutCancel(ctx))
 		if e != nil && !errors.Is(e, sql.ErrTxDone) {
 			err = errors.Join(err, e)
 		}
@@ -231,7 +257,7 @@ func (c *Client) WithinTx(ctx context.Context, o TxOptions, fn func(*Tx) error) 
 	if e = fn(t); e != nil {
 		return e
 	}
-	return t.Commit()
+	return t.CommitContext(ctx)
 }
 
 // Operation contains a parameterized SQL command and its arguments.

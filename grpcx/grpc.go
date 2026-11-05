@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	app "github.com/cetrictech/go-platform-kit/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -18,11 +17,16 @@ import (
 	"google.golang.org/grpc/status"
 	"log/slog"
 	"net"
+	"sync"
 	"time"
 )
 
 // ServerConfig controls explicitly secure gRPC server construction.
 type ServerConfig struct {
+	Authenticate                                     Authenticator
+	StreamTimeout                                    time.Duration
+	Keepalive                                        *keepalive.ServerParameters
+	KeepalivePolicy                                  *keepalive.EnforcementPolicy
 	MaxConnections                                   int
 	TrustCorrelation                                 bool
 	StatsHandler                                     stats.Handler
@@ -40,6 +44,8 @@ type ServerConfig struct {
 
 // Server owns a gRPC server and its registered health service.
 type Server struct {
+	shutdownOnce   sync.Once
+	shutdownDone   chan struct{}
 	maxConnections int
 	GRPC           *grpc.Server
 	Health         *health.Server
@@ -47,7 +53,7 @@ type Server struct {
 
 // NewServer constructs a gRPC server; verified transport or explicit plaintext opt-in is required.
 func NewServer(c ServerConfig) (*Server, error) {
-	if c.MaxConnections < 0 || c.MaxConcurrentStreams < 0 || c.MaxRecvBytes < 0 || c.MaxSendBytes < 0 || c.DefaultTimeout < 0 {
+	if c.MaxConnections < 0 || c.MaxConcurrentStreams < 0 || c.MaxRecvBytes < 0 || c.MaxSendBytes < 0 || c.DefaultTimeout < 0 || c.StreamTimeout < 0 || uint64(c.MaxConcurrentStreams) > uint64(^uint32(0)) {
 		return nil, errors.New("grpcx: invalid limits")
 	}
 	creds := c.Credentials
@@ -68,9 +74,9 @@ func NewServer(c ServerConfig) (*Server, error) {
 	if creds != nil {
 		opts = append(opts, grpc.Creds(creds))
 	}
-	unary := []grpc.UnaryServerInterceptor{Recovery(c.Logger), Translate(), RequestIDs(c.TrustCorrelation), Logging(c.Logger), Authorize(c.Authorize), Deadline(c.DefaultTimeout)}
+	unary := []grpc.UnaryServerInterceptor{Recovery(c.Logger), Translate(), RequestIDs(c.TrustCorrelation), Deadline(c.DefaultTimeout), Logging(c.Logger), Authentication(c.Authenticate), Authorize(c.Authorize)}
 	unary = append(unary, c.Unary...)
-	streams := []grpc.StreamServerInterceptor{StreamRecovery(c.Logger), StreamRequestIDs(c.TrustCorrelation), StreamAuthorize(c.Authorize)}
+	streams := []grpc.StreamServerInterceptor{StreamRecovery(c.Logger), StreamRequestIDs(c.TrustCorrelation), StreamDeadline(c.StreamTimeout), StreamAuthentication(c.Authenticate), StreamAuthorize(c.Authorize)}
 	streams = append(streams, c.Stream...)
 	opts = append(opts, grpc.ChainUnaryInterceptor(unary...), grpc.ChainStreamInterceptor(streams...), grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{MinTime: 5 * time.Second}))
 	if c.MaxRecvBytes > 0 {
@@ -83,6 +89,12 @@ func NewServer(c ServerConfig) (*Server, error) {
 		opts = append(opts, grpc.MaxConcurrentStreams(uint32(c.MaxConcurrentStreams)))
 	}
 	opts = append(opts, c.Options...)
+	if c.Keepalive != nil {
+		opts = append(opts, grpc.KeepaliveParams(*c.Keepalive))
+	}
+	if c.KeepalivePolicy != nil {
+		opts = append(opts, grpc.KeepaliveEnforcementPolicy(*c.KeepalivePolicy))
+	}
 	s := grpc.NewServer(opts...)
 	h := health.NewServer()
 	healthpb.RegisterHealthServer(s, h)
@@ -106,21 +118,24 @@ func (s *Server) Serve(l net.Listener) error {
 
 // Shutdown drains owned work until the context deadline, using documented cancellation fallback.
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.Health.Shutdown()
-	done := make(chan struct{})
-	go func() { s.GRPC.GracefulStop(); close(done) }()
+	s.shutdownOnce.Do(func() {
+		s.shutdownDone = make(chan struct{})
+		s.Health.Shutdown()
+		go func() { s.GRPC.GracefulStop(); close(s.shutdownDone) }()
+	})
 	select {
-	case <-done:
+	case <-s.shutdownDone:
 		return nil
 	case <-ctx.Done():
 		s.GRPC.Stop()
-		<-done
 		return ctx.Err()
 	}
 }
 
 // ClientConfig controls a caller-owned gRPC connection and its transport policy.
 type ClientConfig struct {
+	StreamTimeout  time.Duration
+	Keepalive      *keepalive.ClientParameters
 	StatsHandler   stats.Handler
 	Target         string
 	Credentials    credentials.TransportCredentials
@@ -134,7 +149,7 @@ type ClientConfig struct {
 
 // NewClient constructs a caller-owned gRPC connection without performing an initial blocking dial.
 func NewClient(c ClientConfig) (*grpc.ClientConn, error) {
-	if c.Target == "" {
+	if c.Target == "" || c.DefaultTimeout < 0 || c.StreamTimeout < 0 {
 		return nil, errors.New("grpcx: target required")
 	}
 	creds := c.Credentials
@@ -163,7 +178,10 @@ func NewClient(c ClientConfig) (*grpc.ClientConn, error) {
 		return invoker(ctx, method, req, reply, cc, opts...)
 	}}
 	unary = append(unary, c.Unary...)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(creds), grpc.WithChainUnaryInterceptor(unary...), grpc.WithChainStreamInterceptor(c.Stream...)}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(creds), grpc.WithChainUnaryInterceptor(unary...), grpc.WithChainStreamInterceptor(append([]grpc.StreamClientInterceptor{StreamClientDeadline(c.StreamTimeout)}, c.Stream...)...)}
+	if c.Keepalive != nil {
+		opts = append(opts, grpc.WithKeepaliveParams(*c.Keepalive))
+	}
 	if c.StatsHandler != nil {
 		opts = append(opts, grpc.WithStatsHandler(c.StatsHandler))
 	}
@@ -194,46 +212,6 @@ func Translate() grpc.UnaryServerInterceptor {
 		out, e := h(ctx, req)
 		return out, Status(e)
 	}
-}
-
-// Status translates errors into safe gRPC status values.
-func Status(e error) error {
-	if e == nil {
-		return nil
-	}
-	if _, ok := status.FromError(e); ok {
-		return e
-	}
-	if errors.Is(e, context.Canceled) {
-		return status.Error(codes.Canceled, "Request canceled")
-	}
-	if errors.Is(e, context.DeadlineExceeded) {
-		return status.Error(codes.DeadlineExceeded, "Request timed out")
-	}
-	var a *app.AppError
-	if !errors.As(e, &a) {
-		return status.Error(codes.Internal, "Internal server error")
-	}
-	c := codes.Internal
-	switch a.Category {
-	case app.Validation:
-		c = codes.InvalidArgument
-	case app.Authentication:
-		c = codes.Unauthenticated
-	case app.Authorization:
-		c = codes.PermissionDenied
-	case app.NotFound:
-		c = codes.NotFound
-	case app.Conflict:
-		c = codes.AlreadyExists
-	case app.RateLimit:
-		c = codes.ResourceExhausted
-	case app.Timeout:
-		c = codes.DeadlineExceeded
-	case app.Unavailable, app.Network:
-		c = codes.Unavailable
-	}
-	return status.Error(c, a.Message)
 }
 
 // Logging returns structured request-logging instrumentation.

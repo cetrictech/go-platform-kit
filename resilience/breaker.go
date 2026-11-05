@@ -4,6 +4,8 @@ package resilience
 import (
 	"context"
 	"errors"
+	"github.com/cetrictech/go-platform-kit/instrument"
+	"math"
 	"sync"
 	"time"
 )
@@ -21,6 +23,7 @@ const (
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
+	Observer                                          instrument.Hook
 	FailureThreshold, MinimumRequests, HalfOpenProbes int
 	FailureRate                                       float64
 	Recovery                                          time.Duration
@@ -46,7 +49,7 @@ type Breaker struct {
 
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
 func New(c Config) (*Breaker, error) {
-	if c.FailureThreshold < 1 || c.Recovery <= 0 || c.HalfOpenProbes < 1 || c.FailureRate < 0 || c.FailureRate > 1 {
+	if c.FailureThreshold < 1 || c.Recovery <= 0 || c.HalfOpenProbes < 1 || c.FailureRate < 0 || c.FailureRate > 1 || math.IsNaN(c.FailureRate) || math.IsInf(c.FailureRate, 0) || c.MinimumRequests < 0 {
 		return nil, errors.New("resilience: invalid config")
 	}
 	return &Breaker{c: c, s: Stats{State: Closed}}, nil
@@ -67,7 +70,12 @@ func (b *Breaker) notify(old, next State) {
 }
 
 // Do executes the supplied operation with this component's context and policy.
-func (b *Breaker) Do(ctx context.Context, fn func(context.Context) error) error {
+func (b *Breaker) Do(ctx context.Context, fn func(context.Context) error) (result error) {
+	if fn == nil {
+		return errors.New("resilience: nil operation")
+	}
+	ctx, done := instrument.Start(ctx, b.c.Observer, "resilience.breaker")
+	defer func() { done(result) }()
 	if e := ctx.Err(); e != nil {
 		return e
 	}
@@ -87,7 +95,8 @@ func (b *Breaker) Do(ctx context.Context, fn func(context.Context) error) error 
 	var e error
 	defer func() {
 		if p := recover(); p != nil {
-			b.record(gen, errors.New("operation panic"))
+			result = errors.New("operation panic")
+			b.record(gen, result)
 			panic(p)
 		}
 	}()
@@ -129,28 +138,3 @@ func (b *Breaker) record(gen uint64, e error) {
 
 // Stats returns a concurrency-safe statistics snapshot.
 func (b *Breaker) Stats() Stats { b.mu.Lock(); defer b.mu.Unlock(); return b.s }
-
-// Bulkhead bounds concurrent operation execution.
-type Bulkhead struct{ slots chan struct{} }
-
-// NewBulkhead constructs a positive-capacity concurrency bound.
-func NewBulkhead(n int) (*Bulkhead, error) {
-	if n < 1 {
-		return nil, errors.New("resilience: capacity must be positive")
-	}
-	return &Bulkhead{make(chan struct{}, n)}, nil
-}
-
-// Do executes the supplied operation with this component's context and policy.
-func (b *Bulkhead) Do(ctx context.Context, fn func(context.Context) error) error {
-	if e := ctx.Err(); e != nil {
-		return e
-	}
-	select {
-	case b.slots <- struct{}{}:
-		defer func() { <-b.slots }()
-		return fn(ctx)
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
