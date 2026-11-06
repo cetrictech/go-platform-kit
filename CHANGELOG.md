@@ -2,7 +2,11 @@
 
 All notable changes to this repository are recorded here.
 
-## [1.1.0] — release candidate
+## [Unreleased]
+
+_No changes yet._
+
+## [1.1.0] — 2026-11-06
 
 ### Added
 
@@ -21,8 +25,6 @@ All notable changes to this repository are recorded here.
 
 - No gRPC wrapper was added to the root module; gRPC remains in the existing `grpcx` nested module.
 - No automatic global initialization, network connections, migrations, or driver imports were added to the root module.
-
-## [Unreleased]
 
 ### Added
 
