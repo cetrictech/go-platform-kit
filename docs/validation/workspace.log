@@ -1,0 +1,36 @@
+ok  	github.com/cetrictech/go-platform-kit/clock	(cached)
+ok  	github.com/cetrictech/go-platform-kit/config	(cached)
+ok  	github.com/cetrictech/go-platform-kit/database	0.330s
+ok  	github.com/cetrictech/go-platform-kit/encodingx	(cached)
+ok  	github.com/cetrictech/go-platform-kit/errors	(cached)
+ok  	github.com/cetrictech/go-platform-kit/health	0.407s
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	(cached)
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	0.318s
+ok  	github.com/cetrictech/go-platform-kit/id	(cached)
+ok  	github.com/cetrictech/go-platform-kit/idempotency	(cached)
+ok  	github.com/cetrictech/go-platform-kit/instrument	(cached)
+ok  	github.com/cetrictech/go-platform-kit/internal/consumerlife	(cached)
+?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	(cached)
+ok  	github.com/cetrictech/go-platform-kit/logger	0.328s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	(cached)
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	(cached)
+ok  	github.com/cetrictech/go-platform-kit/pagination	(cached)
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	(cached)
+ok  	github.com/cetrictech/go-platform-kit/resilience	(cached)
+ok  	github.com/cetrictech/go-platform-kit/response	(cached)
+ok  	github.com/cetrictech/go-platform-kit/retry	(cached)
+ok  	github.com/cetrictech/go-platform-kit/security	(cached)
+ok  	github.com/cetrictech/go-platform-kit/validation	(cached)
+ok  	github.com/cetrictech/go-platform-kit/worker	(cached)
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	0.570s
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	(cached)
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	0.438s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	0.451s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	0.444s
+ok  	github.com/cetrictech/go-platform-kit/grpcx	0.571s
+ok  	github.com/cetrictech/go-platform-kit/spiffe	(cached)
+ok  	github.com/cetrictech/go-platform-kit/observability	0.527s
+ok  	github.com/cetrictech/go-platform-kit/security/jwt	0.670s
+?   	github.com/cetrictech/go-platform-kit/integration	[no test files]
+?   	github.com/cetrictech/go-platform-kit/integration/cmd/fixtures	[no test files]

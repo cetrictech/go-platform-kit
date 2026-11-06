@@ -1,0 +1,207 @@
+{
+  "VALIDATION": {
+    "code": "InvalidArgument",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "AUTHENTICATION": {
+    "code": "Unauthenticated",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "AUTHORIZATION": {
+    "code": "PermissionDenied",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "BUSINESS": {
+    "code": "FailedPrecondition",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "NOT_FOUND": {
+    "code": "NotFound",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "CONFLICT": {
+    "code": "AlreadyExists",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "RATE_LIMIT": {
+    "code": "ResourceExhausted",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "DATABASE": {
+    "code": "Internal",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "CACHE": {
+    "code": "Internal",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "MESSAGING": {
+    "code": "Internal",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "NETWORK": {
+    "code": "Unavailable",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "INFRASTRUCTURE": {
+    "code": "Internal",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "INTERNAL": {
+    "code": "Internal",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "TIMEOUT": {
+    "code": "DeadlineExceeded",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "UNAVAILABLE": {
+    "code": "Unavailable",
+    "message": "Approved public message",
+    "reason": "APP_CODE",
+    "domain": "go-platform-kit"
+  },
+  "DATABASE_RETRYABLE": {
+    "code": "Aborted"
+  },
+  "REMOTE_Canceled": {
+    "code": "RPC_CANCELED",
+    "category": "NETWORK",
+    "http_status": 408,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_InvalidArgument": {
+    "code": "RPC_INVALIDARGUMENT",
+    "category": "VALIDATION",
+    "http_status": 400,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_DeadlineExceeded": {
+    "code": "RPC_DEADLINEEXCEEDED",
+    "category": "TIMEOUT",
+    "http_status": 504,
+    "retryable": true,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_NotFound": {
+    "code": "RPC_NOTFOUND",
+    "category": "NOT_FOUND",
+    "http_status": 404,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_AlreadyExists": {
+    "code": "RPC_ALREADYEXISTS",
+    "category": "CONFLICT",
+    "http_status": 409,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_PermissionDenied": {
+    "code": "RPC_PERMISSIONDENIED",
+    "category": "AUTHORIZATION",
+    "http_status": 403,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_ResourceExhausted": {
+    "code": "RPC_RESOURCEEXHAUSTED",
+    "category": "RATE_LIMIT",
+    "http_status": 429,
+    "retryable": true,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_FailedPrecondition": {
+    "code": "RPC_FAILEDPRECONDITION",
+    "category": "BUSINESS",
+    "http_status": 422,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Aborted": {
+    "code": "RPC_ABORTED",
+    "category": "CONFLICT",
+    "http_status": 409,
+    "retryable": true,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_OutOfRange": {
+    "code": "RPC_OUTOFRANGE",
+    "category": "VALIDATION",
+    "http_status": 400,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Unimplemented": {
+    "code": "RPC_UNIMPLEMENTED",
+    "category": "INTERNAL",
+    "http_status": 500,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Internal": {
+    "code": "RPC_INTERNAL",
+    "category": "INTERNAL",
+    "http_status": 500,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Unavailable": {
+    "code": "RPC_UNAVAILABLE",
+    "category": "UNAVAILABLE",
+    "http_status": 503,
+    "retryable": true,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_DataLoss": {
+    "code": "RPC_DATALOSS",
+    "category": "INTERNAL",
+    "http_status": 500,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Unauthenticated": {
+    "code": "RPC_UNAUTHENTICATED",
+    "category": "AUTHENTICATION",
+    "http_status": 401,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  },
+  "REMOTE_Unknown": {
+    "code": "RPC_UNKNOWN",
+    "category": "INTERNAL",
+    "http_status": 500,
+    "retryable": false,
+    "message": "The RPC could not be completed."
+  }
+}

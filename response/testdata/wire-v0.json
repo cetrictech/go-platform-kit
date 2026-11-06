@@ -1,0 +1,245 @@
+{
+  "bad_request": {
+    "status": 400,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "BADREQUEST",
+      "message": "Bad Request",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "unauthorized": {
+    "status": 401,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "UNAUTHORIZED",
+      "message": "Unauthorized",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "forbidden": {
+    "status": 403,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "FORBIDDEN",
+      "message": "Forbidden",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "not_found": {
+    "status": 404,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "NOTFOUND",
+      "message": "Not Found",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "method_not_allowed": {
+    "status": 405,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "METHODNOTALLOWED",
+      "message": "Method Not Allowed",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "conflict": {
+    "status": 409,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "CONFLICT",
+      "message": "Conflict",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "gone": {
+    "status": 410,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "GONE",
+      "message": "Gone",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "unprocessable": {
+    "status": 422,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "UNPROCESSABLEENTITY",
+      "message": "Unprocessable Entity",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "rate_limit": {
+    "status": 429,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "TOOMANYREQUESTS",
+      "message": "Too Many Requests",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "internal": {
+    "status": 500,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "INTERNALSERVERERROR",
+      "message": "Internal Server Error",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "bad_gateway": {
+    "status": 502,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "BADGATEWAY",
+      "message": "Bad Gateway",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "unavailable": {
+    "status": 503,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "SERVICEUNAVAILABLE",
+      "message": "Service Unavailable",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "gateway_timeout": {
+    "status": 504,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "GATEWAYTIMEOUT",
+      "message": "Gateway Timeout",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "ok": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": true,
+      "code": "SUCCESS",
+      "message": "OK",
+      "timestamp": "<timestamp>",
+      "data": {
+        "id": "record-1"
+      }
+    }
+  },
+  "created": {
+    "status": 201,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": true,
+      "code": "SUCCESS",
+      "message": "Created",
+      "timestamp": "<timestamp>",
+      "data": {
+        "id": "record-1"
+      }
+    }
+  },
+  "accepted": {
+    "status": 202,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": true,
+      "code": "SUCCESS",
+      "message": "Accepted",
+      "timestamp": "<timestamp>"
+    }
+  },
+  "no_content": {
+    "status": 204,
+    "content_type": "",
+    "retry_after": "",
+    "body": null
+  },
+  "paginated": {
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": true,
+      "code": "SUCCESS",
+      "message": "OK",
+      "timestamp": "<timestamp>",
+      "data": [
+        "record-1"
+      ],
+      "meta": {
+        "page": 1,
+        "page_size": 20
+      }
+    }
+  },
+  "application_error": {
+    "status": 409,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "2",
+    "body": {
+      "success": false,
+      "code": "ORDER_CONFLICT",
+      "message": "Approved public message",
+      "timestamp": "<timestamp>",
+      "error": {
+        "category": "CONFLICT",
+        "severity": "ERROR",
+        "details": {
+          "field": "version",
+          "password": "[REDACTED]"
+        }
+      },
+      "trace_id": "trace-1",
+      "correlation_id": "request-1"
+    }
+  },
+  "invalid_error_status": {
+    "status": 500,
+    "content_type": "application/json; charset=utf-8",
+    "retry_after": "",
+    "body": {
+      "success": false,
+      "code": "CUSTOM",
+      "message": "Approved public message",
+      "timestamp": "<timestamp>",
+      "error": {
+        "category": "INTERNAL",
+        "severity": "ERROR",
+        "details": null
+      }
+    }
+  }
+}

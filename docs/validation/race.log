@@ -1,0 +1,47 @@
+Module: .
+ok  	github.com/cetrictech/go-platform-kit/clock	1.144s
+ok  	github.com/cetrictech/go-platform-kit/config	1.200s
+ok  	github.com/cetrictech/go-platform-kit/database	1.191s
+ok  	github.com/cetrictech/go-platform-kit/encodingx	1.190s
+ok  	github.com/cetrictech/go-platform-kit/errors	1.192s
+ok  	github.com/cetrictech/go-platform-kit/health	1.251s
+ok  	github.com/cetrictech/go-platform-kit/httpx/client	1.293s
+ok  	github.com/cetrictech/go-platform-kit/httpx/middleware	1.263s
+ok  	github.com/cetrictech/go-platform-kit/id	1.248s
+ok  	github.com/cetrictech/go-platform-kit/idempotency	1.226s
+ok  	github.com/cetrictech/go-platform-kit/instrument	1.194s
+ok  	github.com/cetrictech/go-platform-kit/internal/consumerlife	1.180s
+?   	github.com/cetrictech/go-platform-kit/internal/redact	[no test files]
+ok  	github.com/cetrictech/go-platform-kit/lifecycle	1.144s
+ok  	github.com/cetrictech/go-platform-kit/logger	1.266s
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka	1.153s
+ok  	github.com/cetrictech/go-platform-kit/messaging/outbox	1.189s
+ok  	github.com/cetrictech/go-platform-kit/pagination	1.236s
+ok  	github.com/cetrictech/go-platform-kit/ratelimit	1.270s
+ok  	github.com/cetrictech/go-platform-kit/resilience	1.252s
+ok  	github.com/cetrictech/go-platform-kit/response	1.167s
+ok  	github.com/cetrictech/go-platform-kit/retry	1.155s
+ok  	github.com/cetrictech/go-platform-kit/security	3.672s
+ok  	github.com/cetrictech/go-platform-kit/validation	1.204s
+ok  	github.com/cetrictech/go-platform-kit/worker	1.173s
+Module: database/postgres
+ok  	github.com/cetrictech/go-platform-kit/database/postgres	1.289s
+Module: database/mysql
+ok  	github.com/cetrictech/go-platform-kit/database/mysql	1.184s
+Module: cache/redis
+ok  	github.com/cetrictech/go-platform-kit/cache/redis	1.252s
+Module: messaging/kafka/franz
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/franz	1.286s
+Module: messaging/kafka/sarama
+ok  	github.com/cetrictech/go-platform-kit/messaging/kafka/sarama	1.483s
+Module: grpcx
+ok  	github.com/cetrictech/go-platform-kit/grpcx	1.392s
+Module: spiffe
+ok  	github.com/cetrictech/go-platform-kit/spiffe	1.312s
+Module: observability
+ok  	github.com/cetrictech/go-platform-kit/observability	1.438s
+Module: security/jwt
+ok  	github.com/cetrictech/go-platform-kit/security/jwt	1.608s
+Module: integration
+?   	github.com/cetrictech/go-platform-kit/integration	[no test files]
+?   	github.com/cetrictech/go-platform-kit/integration/cmd/fixtures	[no test files]

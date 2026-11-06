@@ -1,0 +1,9 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cetrictech/go-platform-kit/logger
+cpu: Apple M3 Pro
+BenchmarkJSON-11    	  847094	      1416 ns/op	      72 B/op	       6 allocs/op
+BenchmarkJSON-11    	  845757	      1417 ns/op	      72 B/op	       6 allocs/op
+BenchmarkJSON-11    	  843525	      1412 ns/op	      72 B/op	       6 allocs/op
+PASS
+ok  	github.com/cetrictech/go-platform-kit/logger	3.965s

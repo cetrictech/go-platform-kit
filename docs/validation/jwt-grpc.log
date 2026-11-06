@@ -1,0 +1,4 @@
+=== RUN   TestJWTGRPCUnaryAndStreamingAuthentication
+--- PASS: TestJWTGRPCUnaryAndStreamingAuthentication (0.01s)
+PASS
+ok  	github.com/cetrictech/go-platform-kit/integration	1.715s

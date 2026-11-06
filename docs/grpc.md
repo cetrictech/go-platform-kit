@@ -1,0 +1,9 @@
+# gRPC
+
+NewServer requires transport credentials or TLS; plaintext requires AllowPlaintext=true. NewClient has the same rule. Standard credentials can be supplied from SPIFFE TLS configs. Reflection is off unless explicitly enabled. Configure message limits and maximum concurrent streams; health is registered automatically. The caller owns listener creation. Server.Shutdown gracefully drains, then forces Stop when context expires. Close client connections explicitly.
+
+Unary order is recovery, safe error translation, request identity, logging, authorization, deadline policy, caller interceptors. Stream order is recovery/translation, request identity, authorization, caller interceptors. Recovery logs diagnostics and returns generic Internal. No request bodies are logged. Authorization is an explicit hook; authentication/end-user permission checks belong in caller hooks. Status maps core errors without exposing arbitrary causes. Caller-supplied status errors are treated as intentional public errors.
+
+DefaultTimeout bounds unary calls. Stream lifetime/deadline policy is application-controlled. No non-idempotent automatic retries are installed. Native grpc.Server, ClientConn, options and interceptors remain available for official OpenTelemetry instrumentation, keepalive and advanced policies. The initial wrapper does not install every optional interceptor automatically; see implementation-status.md.
+
+MaxConnections bounds active TCP connections through LimitListener; MaxConcurrentStreams bounds streams per connection. Server-owned request/correlation IDs are generated for unary and streaming RPCs. TrustCorrelation explicitly permits a bounded, syntactically validated forwarded correlation ID. observability.GRPC returns a stats handler for StatsHandler on both server and client configs, including W3C propagation and duration metrics grouped by status.

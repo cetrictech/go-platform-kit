@@ -1,0 +1,4 @@
+=== RUN   TestSDKWorkloadGRPCRotation
+--- PASS: TestSDKWorkloadGRPCRotation (0.04s)
+PASS
+ok  	github.com/cetrictech/go-platform-kit/integration	1.762s

@@ -1,0 +1,375 @@
+{
+  "benchmarks": {
+    "github.com/cetrictech/go-platform-kit/database/BenchmarkStructScanning": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 48.0,
+        "samples": [
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0,
+          48.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 4.0,
+        "samples": [
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0,
+          4.0
+        ]
+      },
+      "ns/op": {
+        "mad": 3.3500000000000014,
+        "median": 110.75,
+        "samples": [
+          157.3,
+          107.7,
+          140.9,
+          110.5,
+          108.7,
+          111.1,
+          116.1,
+          111.0,
+          105.8,
+          107.1
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/encodingx/BenchmarkJSON": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 72.0,
+        "samples": [
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0,
+          72.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 5.0,
+        "samples": [
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0
+        ]
+      },
+      "ns/op": {
+        "mad": 5.000000000000028,
+        "median": 361.85,
+        "samples": [
+          370.2,
+          355.1,
+          356.9,
+          363.3,
+          367.8,
+          356.8,
+          363.0,
+          367.8,
+          360.7,
+          357.1
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/errors/BenchmarkConstruction": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 176.0,
+        "samples": [
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0,
+          176.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 1.0,
+        "samples": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "ns/op": {
+        "mad": 5.060000000000002,
+        "median": 46.675,
+        "samples": [
+          85.57,
+          81.9,
+          45.34,
+          62.11,
+          44.73,
+          49.24,
+          46.41,
+          38.75,
+          46.94,
+          39.12
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/logger/BenchmarkJSON": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 0.0,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 0.0,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "ns/op": {
+        "mad": 43.0,
+        "median": 1177.0,
+        "samples": [
+          1463.0,
+          1140.0,
+          1220.0,
+          1370.0,
+          1259.0,
+          1197.0,
+          1157.0,
+          1123.0,
+          1134.0,
+          1143.0
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/BenchmarkConsumerProcessing": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 0.0,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 0.0,
+        "samples": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "ns/op": {
+        "mad": 0.055000000000000604,
+        "median": 11.73,
+        "samples": [
+          11.66,
+          11.74,
+          12.0,
+          11.77,
+          11.72,
+          11.68,
+          24.47,
+          11.6,
+          11.77,
+          11.67
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/pagination/BenchmarkCursor": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 1296.0,
+        "samples": [
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0,
+          1296.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 14.0,
+        "samples": [
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0,
+          14.0
+        ]
+      },
+      "ns/op": {
+        "mad": 9.0,
+        "median": 1065.5,
+        "samples": [
+          1077.0,
+          1104.0,
+          1088.0,
+          1065.0,
+          1103.0,
+          1064.0,
+          1064.0,
+          1066.0,
+          1055.0,
+          1058.0
+        ]
+      }
+    },
+    "github.com/cetrictech/go-platform-kit/response/BenchmarkSerialization": {
+      "B/op": {
+        "mad": 0.0,
+        "median": 1544.0,
+        "samples": [
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0,
+          1544.0
+        ]
+      },
+      "allocs/op": {
+        "mad": 0.0,
+        "median": 17.0,
+        "samples": [
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0,
+          17.0
+        ]
+      },
+      "ns/op": {
+        "mad": 22.0,
+        "median": 1257.0,
+        "samples": [
+          1261.0,
+          1256.0,
+          1265.0,
+          1295.0,
+          1589.0,
+          1233.0,
+          1219.0,
+          1211.0,
+          1237.0,
+          1258.0
+        ]
+      }
+    }
+  },
+  "max_regression_fraction": {
+    "B/op": 0.1,
+    "allocs/op": 0.0,
+    "ns/op": 0.2
+  },
+  "max_relative_mad": 0.15,
+  "metadata": {
+    "benchtime": "200ms",
+    "commit": "1a547568e731a76f9b388f05e044da3c90edae0d",
+    "cpu": "Apple M3 Pro",
+    "go_version": "go1.27.3",
+    "goarch": "arm64",
+    "gomaxprocs": 2,
+    "goos": "darwin",
+    "race": false,
+    "schema": 1,
+    "source_dirty": true,
+    "suite": "core-v1"
+  },
+  "minimum_samples": 7,
+  "schema": 1
+}
