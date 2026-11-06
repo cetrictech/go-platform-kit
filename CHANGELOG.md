@@ -2,6 +2,26 @@
 
 All notable changes to this repository are recorded here.
 
+## [1.1.0] — release candidate
+
+### Added
+
+- Exported environment helpers in `config`: required and optional string, boolean, integer, duration, and CSV lookups, plus listen-address, port, service-URL, and origin validation.
+- Shared PostgreSQL primitives in `database/postgres`: `Row`, `Rows`, `Executor`, `IsNoRows`, and `ConstraintError`.
+- UUID helpers in `id`: `IsNil` and `IsV7`.
+- Logger level and default-management helpers in `logger`: `Level`, `ParseLevel`, `Default`, and `SetDefault`.
+- File logging configuration remains owned by the library, including lumberjack rotation, retention, compression, flush, close, and output ownership semantics.
+
+### Changed
+
+- Consumer services can use the root library packages for environment parsing, database error classification, UUID checks, and logger setup without copying infrastructure code or importing the underlying drivers directly.
+- Release documentation now describes the v1.1.0 candidate and the independently versioned nested modules.
+
+### Compatibility
+
+- No gRPC wrapper was added to the root module; gRPC remains in the existing `grpcx` nested module.
+- No automatic global initialization, network connections, migrations, or driver imports were added to the root module.
+
 ## [Unreleased]
 
 ### Added

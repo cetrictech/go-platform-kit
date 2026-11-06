@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.27.3
 
 require (
-	github.com/cetrictech/go-platform-kit v0.1.0
+	github.com/cetrictech/go-platform-kit v1.1.0
 	github.com/redis/go-redis/v9 v9.23.0
 )
 

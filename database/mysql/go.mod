@@ -5,7 +5,7 @@ go 1.26.0
 toolchain go1.27.3
 
 require (
-	github.com/cetrictech/go-platform-kit v0.1.0
+	github.com/cetrictech/go-platform-kit v1.1.0
 	github.com/go-sql-driver/mysql v1.10.1
 )
 

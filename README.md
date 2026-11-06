@@ -2,7 +2,7 @@
 
 Modular Go infrastructure SDK. Module path: `github.com/cetrictech/go-platform-kit`. License: MIT. Default branch on GitHub is `main`; this work lives on `develop`.
 
-**Status:** pre-1.0, unpublished. No release tags exist. Go 1.26.0 minimum; the workspace toolchain is Go 1.27.3. CI matrices Go 1.26.x and 1.27.x.
+**Status:** v1.1.0 release candidate. Tagging and publication are maintainer-controlled. Go 1.26.0 minimum; the workspace toolchain is Go 1.27.3. CI matrices Go 1.26.x and 1.27.x.
 
 The root module has no database, Kafka, gRPC, Redis, SPIFFE, JWT, OpenTelemetry, or S3 drivers. Those live in nested modules listed in `go.work`. `integration/` is test-only and is not a consumer module.
 
@@ -44,13 +44,13 @@ Release-oriented targets in this tree: `make verify`, `make api`, `make api-surf
 | `.../observability` | OpenTelemetry |
 | `.../storage/s3` | S3-compatible object client |
 
-Proposed versions in `release/modules.json` are all `v0.1.0`. Nested modules use directory-prefixed tags when published (`spiffe/v0.1.0`). A root tag does not release nested modules.
+The root release candidate is `v1.1.0`. Nested modules remain independently versioned and use directory-prefixed tags when published (`spiffe/v1.1.0`). A root tag does not release nested modules.
 
 Consumer import (after a tag exists):
 
 ```sh
-go get github.com/cetrictech/go-platform-kit@v0.1.0
-go get github.com/cetrictech/go-platform-kit/spiffe@v0.1.0
+go get github.com/cetrictech/go-platform-kit@v1.1.0
+go get github.com/cetrictech/go-platform-kit/spiffe@v1.1.0
 ```
 
 Until tags exist, consume from a commit on this repository. Local `replace` directives in nested `go.mod` files are for this workspace only; consumers do not inherit them.

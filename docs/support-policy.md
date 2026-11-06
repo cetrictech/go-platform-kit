@@ -1,6 +1,6 @@
 # Support policy
 
-No SDK release series is published yet. The first candidate is v0.1.0; no module is designated v1-stable or production-certified. The support commitments below apply when releases are published and are checked by the release process.
+The v1.1.0 series is a release candidate; publication and stable-support designation remain subject to the release gates below. No module is production-certified solely by passing the repository test suite. The support commitments below apply after publication and are checked by the release process.
 
 ## Go and SDK versions
 
