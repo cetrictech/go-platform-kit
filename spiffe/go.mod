@@ -18,5 +18,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260817212433-ac3dfec99bb1 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
-
-replace github.com/cetrictech/go-platform-kit => ..

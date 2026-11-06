@@ -1,3 +1,5 @@
+github.com/cetrictech/go-platform-kit v1.1.0 h1:IdD9jv8X/ucoNHMYtZS1H9lZ1825wHYR7725iwYkAsU=
+github.com/cetrictech/go-platform-kit v1.1.0/go.mod h1:SE7WLAF8n3Y1HSArzS0uLQ+XVRQpQQRJAOvsDbouY3I=
 github.com/golang/protobuf v1.5.4 h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=
 github.com/golang/protobuf v1.5.4/go.mod h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=

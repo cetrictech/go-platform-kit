@@ -35,5 +35,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
-
-replace github.com/cetrictech/go-platform-kit => ..

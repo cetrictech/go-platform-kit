@@ -1,3 +1,5 @@
+github.com/cetrictech/go-platform-kit v1.1.0 h1:IdD9jv8X/ucoNHMYtZS1H9lZ1825wHYR7725iwYkAsU=
+github.com/cetrictech/go-platform-kit v1.1.0/go.mod h1:SE7WLAF8n3Y1HSArzS0uLQ+XVRQpQQRJAOvsDbouY3I=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

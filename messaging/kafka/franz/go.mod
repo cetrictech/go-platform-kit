@@ -15,5 +15,3 @@ require (
 	github.com/klauspost/compress v1.20.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
 )
-
-replace github.com/cetrictech/go-platform-kit => ../../..

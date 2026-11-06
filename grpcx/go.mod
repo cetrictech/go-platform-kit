@@ -19,5 +19,3 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
-
-replace github.com/cetrictech/go-platform-kit => ..
