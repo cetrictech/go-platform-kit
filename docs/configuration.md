@@ -16,3 +16,13 @@ Load supports strings, booleans, signed/unsigned integers, floating point, durat
 Implement `Validate() error` on the configuration or supply Options.Validate. Use Options.Lookup for programmatic overrides and tests. Getter helpers return fallback values on invalid input; use Load when malformed values must fail startup. Dump recursively masks secret-tagged and sensitive-name struct fields; map keys receive the same sensitive-name filtering. Keep secrets in explicitly tagged or named fields rather than arbitrary free text.
 
 `Options.Overrides` and `Options.Environment` select explicit JSON profile overlays before environment overrides. No profile is selected from process environment implicitly. Defaults have lowest priority, followed by existing programmatic values, JSON input, selected profile, environment lookup and explicit `Options.Values`. `config.Validate` runs validation independently of loading. Recursive copy/dump traversal is bounded; cyclic configuration inputs fail rather than recursing indefinitely.
+
+For small startup settings that do not need a full configuration struct, use the exported environment helpers:
+
+```go
+port, err := config.OptionalIntEnv("PORT", 8080, 1, 65535)
+topics, err := config.OptionalCSVEnv("KAFKA_CONSUMER_TOPICS")
+timeout, err := config.OptionalDurationEnv("APP_TIMEOUT", 5*time.Second)
+```
+
+`RequiredStringEnv` reports a missing variable without exposing its value. `OptionalBoolEnv`, `OptionalStringEnv`, and the validators (`ValidateListenAddress`, `ValidatePort`, `ValidateServiceURL`, `ValidateOrigin`) centralize parsing and validation for consuming services.

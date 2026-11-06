@@ -42,6 +42,30 @@ type Client struct {
 	hooks   db.Hooks
 }
 
+// Row and Rows are the driver-neutral database result contracts exposed to
+// consumers. Driver types remain private to this package.
+type Row = db.Row
+type Rows = db.Rows
+
+// Executor is the SQL surface shared by Client and Tx.
+type Executor interface {
+	Exec(context.Context, string, ...any) (Result, error)
+	Query(context.Context, string, ...any) (Rows, error)
+	QueryRow(context.Context, string, ...any) Row
+}
+
+// IsNoRows reports whether the driver returned the no-row condition.
+func IsNoRows(err error) bool { return errors.Is(err, pgx.ErrNoRows) }
+
+// ConstraintError exposes PostgreSQL constraint details without exposing pgx.
+func ConstraintError(err error) (code, constraint string, ok bool) {
+	var e *pgconn.PgError
+	if !errors.As(err, &e) || e == nil {
+		return "", "", false
+	}
+	return e.Code, e.ConstraintName, true
+}
+
 // New constructs and validates an explicitly owned instance. See package documentation for defaults and cleanup.
 func New(ctx context.Context, c Config) (*Client, error) {
 	if c.URL == "" || c.MaxConnections < 0 || c.MinConnections < 0 || c.QueryTimeout < 0 || c.ConnectTimeout < 0 || c.MaxIdleTime < 0 || c.MaxLifetime < 0 || c.StatementTimeout < 0 {

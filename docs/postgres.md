@@ -19,6 +19,8 @@ Verified TLS is required by default. `AllowPlaintext: true` is an explicit opt-i
 
 `NamedArgs` supplies library-owned strict named arguments: `client.Exec(ctx, "UPDATE accounts SET name=@name WHERE id=@id", postgres.NamedArgs{"name": name, "id": id})`. Missing or unused names fail. `Hooks.BeforeBegin`, `AfterQuery` and `AfterTransaction` are explicit per-client callbacks. QueryLogger emits operation, duration and outcome without SQL or parameters. Hooks receive trusted SQL text for application-controlled inspection; keep callbacks prompt and safe.
 
+The package exports `Row`, `Rows`, and `Executor` aliases/interfaces for application-owned repository boundaries. Use `postgres.IsNoRows(err)` instead of importing pgx error values, and `postgres.ConstraintError(err)` to classify PostgreSQL unique, foreign-key, and check-constraint failures without exposing driver details in the service layer.
+
 `Prepare(ctx, sql)` returns an owned statement with Exec/Query/QueryRow/Get/Select and Native. Close statements and `SQLDB()` bridges before the pool. Deferred QueryRow handles support one Scan and never execute twice. The cached scanner flattens exported embedded pointer structs, supports sql.Scanner and `db:"field,json"`, and rejects ambiguous mappings. `database.JSON[T]` distinguishes SQL NULL from valid JSON null.
 
 `NewCluster(ctx, ClusterConfig{Primary: ..., Replicas: ...})` opens explicitly configured pools and cleans up partial startup. Writer always selects the primary; Reader(Strong) selects primary and Reader(Eventual) round-robins replicas configured read-only. It never infers consistency by parsing SQL. Replica topology, replication and promotion remain operator-owned.

@@ -4,7 +4,7 @@
 
 | Module suffix | Proposed version | Declared core requirement | Go minimum | Native API dependency / exercised infrastructure line |
 | --- | --- | --- | --- | --- |
-| root | v0.1.0 | not applicable | 1.26.0 | standard library; UUID, bcrypt and log rotation dependencies |
+| root | v1.1.0 | not applicable | 1.26.0 | standard library; UUID, bcrypt and log rotation dependencies |
 | database/postgres | v0.1.0 | v0.1.0 | 1.26.0 | pgx v5.12.0; PostgreSQL 18 |
 | database/mysql | v0.1.0 | v0.1.0 | 1.26.0 | go-sql-driver/mysql v1.10.1; MySQL 8.4 |
 | cache/redis | v0.1.0 | v0.1.0 | 1.26.0 | go-redis v9.23.0; Redis 8 standalone, Cluster, Sentinel and TLS |

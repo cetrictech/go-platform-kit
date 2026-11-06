@@ -9,7 +9,7 @@ Index of this repository. Paths are relative to `docs/` unless noted.
 | [library.md](library.md) | End-to-end library guide: modules, construction order, SPIFFE, gRPC, env, tests |
 | [architecture.md](architecture.md) | Root vs nested modules, lifecycle, no import-time connections |
 | [modules.md](modules.md) | Public constructors and owned resources |
-| [../CHANGELOG.md](../CHANGELOG.md) | Unreleased changes |
+| [../CHANGELOG.md](../CHANGELOG.md) | v1.1.0 release candidate and unreleased changes |
 
 ## Setup and quality
 
@@ -27,7 +27,7 @@ Index of this repository. Paths are relative to `docs/` unless noted.
 | [dependencies.md](dependencies.md) | Exact go.mod selections |
 | [migration-guide.md](migration-guide.md) | Adoption notes |
 | [completion-checklist.md](completion-checklist.md) | Spec checklist |
-| [release-notes.md](release-notes.md) | Proposed v0.1.0 notes (unpublished) |
+| [release-notes.md](release-notes.md) | Proposed v1.1.0 release notes |
 
 ## Packages
 
@@ -38,6 +38,7 @@ Index of this repository. Paths are relative to `docs/` unless noted.
 | [errors.md](errors.md) | root `errors` |
 | [http.md](http.md) | root `httpx`, `response` |
 | [pagination.md](pagination.md) | root `pagination` |
+| [ids.md](ids.md) | root `id` |
 | [postgres.md](postgres.md) | `database/postgres` |
 | [mysql.md](mysql.md) | `database/mysql` |
 | [redis.md](redis.md) | `cache/redis` |

@@ -19,8 +19,8 @@ There are no connections, signal handlers, migrations, or OpenTelemetry globals 
 | Minimum Go | 1.26.0 (`go.mod`) |
 | Toolchain | 1.27.3 |
 | License | MIT, Copyright 2026 Cetric Okola |
-| Proposed versions | `v0.1.0` in `release/modules.json` |
-| Tags | none |
+| Release candidate | `v1.1.0` for the root module |
+| Tags | created separately by maintainers after release gates pass |
 
 `scripts/modules.sh` runs commands with `GOWORK=off` so each module resolves like a published consumer.
 
@@ -40,8 +40,8 @@ SPIFFE `Source` must stay open for the lifetime of every TLS listener and client
 
 | Package | Responsibility |
 | --- | --- |
-| `config` | Typed env/JSON load. Tags: `env`, `default`, `required`, `secret`. No `.env` file loader. |
-| `logger` | JSON slog, service fields, file rotation via lumberjack when configured. Caller closes. |
+| `config` | Typed env/JSON load plus reusable env lookups and address/URL/origin validators. Tags: `env`, `default`, `required`, `secret`. No `.env` file loader. |
+| `logger` | JSON slog, service fields, file rotation via lumberjack when configured, shared levels, and default logger management. Caller closes. |
 | `errors` | `AppError` with public code/message; diagnostics stay off the wire. |
 | `response` | HTTP JSON envelopes, pagination wrappers, 1 MiB default atomic limit. |
 | `httpx/middleware` | Recovery, IDs, CORS, body limit, auth hooks. |
@@ -49,6 +49,7 @@ SPIFFE `Source` must stay open for the lifetime of every TLS listener and client
 | `validation` | Bounded JSON decode, unknown-field rejection. |
 | `pagination` | Offset and signed cursors. |
 | `database` | Shared scan/JSON helpers used by SQL adapters. |
+| `id` | UUID generation, parsing, validation, nil checks, and UUIDv7 checks. |
 | `messaging/kafka` | Driver-free producer/consumer contracts. |
 | `messaging/outbox` | SQL outbox processing; at-least-once. |
 | `lifecycle`, `health`, `worker` | Ordered start/stop, bounded checks, named workers. |
@@ -148,6 +149,10 @@ It does not run a SPIRE agent, create Docker labels, set `SPIRE_GID`, or mount `
 ## Configuration loading
 
 `config.Load` updates a struct only after conversion and validation succeed. Precedence: defaults, existing values, JSON file, environment overlay, `Options.Values`. Unknown JSON fields fail. Secret-tagged fields are masked in dumps. Nested env names use underscores under `Options.Prefix`.
+
+For direct environment access, use `RequiredStringEnv`, `OptionalStringEnv`, `OptionalBoolEnv`, `OptionalIntEnv`, `OptionalDurationEnv`, and `OptionalCSVEnv`. Validate service inputs with `ValidateListenAddress`, `ValidatePort`, `ValidateServiceURL`, and `ValidateOrigin`. These helpers centralize parsing and error behavior for consumers.
+
+`logger.Open` owns configured file output and rotation. Applications should create the configured parent directory, then close and flush the returned logger during shutdown. `logger.ParseLevel`, `logger.Default`, and `logger.SetDefault` provide shared level/default management without importing another logging driver.
 
 ## Errors and HTTP
 

@@ -17,3 +17,9 @@ func Parse(s string) (UUID, error) { return uuid.Parse(s) }
 
 // Validate checks the supplied value according to package validation rules.
 func Validate(s string) error { return uuid.Validate(s) }
+
+// IsNil reports whether u is the zero UUID.
+func IsNil(u UUID) bool { return u == uuid.Nil }
+
+// IsV7 reports whether u is a UUID version 7 value.
+func IsV7(u UUID) bool { return u.Version() == 7 }

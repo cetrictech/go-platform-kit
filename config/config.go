@@ -9,6 +9,7 @@ import (
 	"github.com/cetrictech/go-platform-kit/id"
 	redaction "github.com/cetrictech/go-platform-kit/internal/redact"
 	"io"
+	"net"
 	"net/url"
 	"os"
 	"reflect"
@@ -16,6 +17,133 @@ import (
 	"strings"
 	"time"
 )
+
+// EnvVariableNotSetError reports a required environment variable that is empty.
+func EnvVariableNotSetError(key string) error {
+	return fmt.Errorf("env variable %s is not set or is empty", key)
+}
+
+// RequiredStringEnv returns a trimmed non-empty environment variable.
+func RequiredStringEnv(key string) (string, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return "", EnvVariableNotSetError(key)
+	}
+	return value, nil
+}
+
+// OptionalStringEnv returns a trimmed environment variable or fallback.
+func OptionalStringEnv(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+// OptionalBoolEnv parses a boolean environment variable or fallback.
+func OptionalBoolEnv(key string, fallback bool) (bool, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean", key)
+	}
+	return value, nil
+}
+
+// OptionalIntEnv parses and bounds an integer environment variable.
+func OptionalIntEnv(key string, fallback, min, max int) (int, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < min || value > max {
+		return 0, fmt.Errorf("%s must be an integer between %d and %d", key, min, max)
+	}
+	return value, nil
+}
+
+// OptionalDurationEnv parses a positive duration environment variable.
+func OptionalDurationEnv(key string, fallback time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := time.ParseDuration(raw)
+	if err != nil || value <= 0 {
+		return 0, fmt.Errorf("%s must be a positive duration", key)
+	}
+	return value, nil
+}
+
+// OptionalCSVEnv parses a comma-separated environment variable, removing duplicates.
+func OptionalCSVEnv(key string) ([]string, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return nil, nil
+	}
+	values := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, item := range strings.Split(raw, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			return nil, fmt.Errorf("%s must not contain empty entries", key)
+		}
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		values = append(values, item)
+	}
+	return values, nil
+}
+
+// ValidateListenAddress validates a host:port listen address.
+func ValidateListenAddress(key, address string) error {
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return fmt.Errorf("%s must use host:port or :port", key)
+	}
+	return ValidatePort(key, port)
+}
+
+// ValidatePort validates a TCP port.
+func ValidatePort(key, port string) error {
+	value, err := strconv.Atoi(port)
+	if err != nil || value < 1 || value > 65535 {
+		return fmt.Errorf("%s must specify a port between 1 and 65535", key)
+	}
+	return nil
+}
+
+// ValidateServiceURL validates a URL against allowed schemes.
+func ValidateServiceURL(key, raw string, schemes ...string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Hostname() == "" || parsed.Fragment != "" {
+		return fmt.Errorf("%s must be a valid service URL", key)
+	}
+	for _, scheme := range schemes {
+		if parsed.Scheme == scheme {
+			return nil
+		}
+	}
+	return fmt.Errorf("%s must use one of: %s", key, strings.Join(schemes, ", "))
+}
+
+// ValidateOrigin validates an HTTP origin without paths or credentials.
+func ValidateOrigin(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Hostname() == "" ||
+		(parsed.Scheme != "http" && parsed.Scheme != "https") ||
+		parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return errors.New("origins must use http(s)://host[:port] without paths or wildcards")
+	}
+	return nil
+}
 
 // Options controls loading. Precedence is defaults, existing values/file, environment.
 type Options struct {

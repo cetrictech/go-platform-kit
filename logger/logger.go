@@ -13,6 +13,19 @@ import (
 	"sync"
 )
 
+// Level is the standard logging threshold exposed without requiring consumers
+// to import slog directly.
+type Level = slog.Level
+
+// ParseLevel parses a textual level and falls back to Info when invalid.
+func ParseLevel(value string) Level {
+	var level Level
+	if err := level.UnmarshalText([]byte(value)); err != nil {
+		return slog.LevelInfo
+	}
+	return level
+}
+
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
 	JSON                                      bool
@@ -81,6 +94,18 @@ func From(l *slog.Logger) *Logger {
 		l = slog.Default()
 	}
 	return &Logger{Logger: slog.New(&contextHandler{&redactHandler{l.Handler()}})}
+}
+
+// Default returns a wrapper around the process default logger.
+func Default() *Logger { return From(slog.Default()) }
+
+// SetDefault installs l as the process default logger.
+func SetDefault(l *Logger) {
+	if l == nil {
+		slog.SetDefault(slog.Default())
+		return
+	}
+	slog.SetDefault(l.Logger)
 }
 func clean(a slog.Attr) slog.Attr {
 	if redact.Sensitive(a.Key) {

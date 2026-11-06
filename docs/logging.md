@@ -15,4 +15,6 @@ Redaction covers sensitive structured keys, groups and JSON-serializable nested 
 
 Use `logger.Open` when startup must fail on invalid rotation settings or an inaccessible file. `New` preserves slog's lazy error handling. `Open` eagerly opens the configured file with mode 0600 for new files; protect its parent directory and existing file permissions explicitly. Do not configure both `File` and `Output` with `Open`.
 
+Use `logger.ParseLevel` for environment-backed log levels and `logger.Default`/`logger.SetDefault` when a process needs to share the configured logger with packages that cannot receive it directly. These helpers do not create a logger or open a file implicitly.
+
 Injected outputs stay caller-owned unless `OwnOutput` is true. Loggers derived with `With` share one close operation and dynamic level. `Flush(ctx)` invokes the writer's supported flush/sync contract; stop producers first. A synchronous writer's `Flush()` or `Sync()` must itself be bounded. Lumberjack writes directly and has no separate buffered flush. Default structured redaction bounds traversal, handles typed maps/structs and URL credentials, and masks common labeled free-text credentials. `SanitizeText` can enforce application-specific text policy; unlabeled arbitrary secrets cannot be detected reliably.
