@@ -16,13 +16,16 @@ import (
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
-	Hooks                                    db.Hooks
-	QueryLogger                              *slog.Logger
-	QueryTimeout                             time.Duration
-	AllowPlaintext                           bool
-	Observer                                 instrument.Hook
-	DSN                                      string
-	MaxOpenConnections, MaxIdleConnections   int
+	Hooks          db.Hooks
+	QueryLogger    *slog.Logger
+	QueryTimeout   time.Duration
+	AllowPlaintext bool
+	Observer       instrument.Hook
+	DSN            string
+	// MaxOpenConnections bounds concurrent connections; zero defaults to 32.
+	MaxOpenConnections int
+	// MaxIdleConnections must not exceed the effective open-connection bound.
+	MaxIdleConnections                       int
 	MaxLifetime, MaxIdleTime, ConnectTimeout time.Duration
 	TLS                                      *tls.Config
 }
@@ -40,6 +43,12 @@ type Client struct {
 func New(ctx context.Context, c Config) (*Client, error) {
 	if c.DSN == "" || c.MaxOpenConnections < 0 || c.MaxIdleConnections < 0 || c.ConnectTimeout < 0 || c.MaxLifetime < 0 || c.MaxIdleTime < 0 || c.QueryTimeout < 0 {
 		return nil, errors.New("mysql: invalid config")
+	}
+	if c.MaxOpenConnections == 0 {
+		c.MaxOpenConnections = 32
+	}
+	if c.MaxIdleConnections > c.MaxOpenConnections {
+		return nil, errors.New("mysql: idle connections exceed open connection bound")
 	}
 	cfg, e := driver.ParseDSN(c.DSN)
 	if e != nil {
@@ -71,9 +80,7 @@ func New(ctx context.Context, c Config) (*Client, error) {
 		return nil, e
 	}
 	s := sql.OpenDB(connector)
-	if c.MaxOpenConnections > 0 {
-		s.SetMaxOpenConns(c.MaxOpenConnections)
-	}
+	s.SetMaxOpenConns(c.MaxOpenConnections)
 	if c.MaxIdleConnections > 0 {
 		s.SetMaxIdleConns(c.MaxIdleConnections)
 	}

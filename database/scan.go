@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cetrictech/go-platform-kit/id"
 	"reflect"
 	"strings"
 	"sync"
@@ -162,14 +163,14 @@ func Scan(rows Rows, destination any, many bool) error {
 				if f.json {
 					args[i] = jsonField{field.Addr().Interface()}
 				} else {
-					args[i] = field.Addr().Interface()
+					args[i] = scanValue(field)
 				}
 			}
 		} else {
 			if len(cols) != 1 {
 				return fmt.Errorf("database: scalar requires 1 column, got %d", len(cols))
 			}
-			args[0] = base.Addr().Interface()
+			args[0] = scanValue(base)
 		}
 		if e = rows.Scan(args...); e != nil {
 			return e
@@ -191,6 +192,135 @@ func Scan(rows Rows, destination any, many bool) error {
 		v.Set(result)
 	}
 	return nil
+}
+
+func scanValue(field reflect.Value) any {
+	base := field.Type()
+	for base.Kind() == reflect.Pointer {
+		base = base.Elem()
+	}
+	switch base {
+	case reflect.TypeFor[time.Time]():
+		return timeScanner{field}
+	case reflect.TypeFor[id.UUID]():
+		return idScanner{field}
+	default:
+		return field.Addr().Interface()
+	}
+}
+
+type timeScanner struct{ field reflect.Value }
+
+func (s timeScanner) Scan(src any) error {
+	if src == nil {
+		if s.field.Kind() == reflect.Pointer {
+			s.field.SetZero()
+			return nil
+		}
+		return errors.New("database: NULL time")
+	}
+	t, e := timeFrom(src)
+	if e != nil {
+		return e
+	}
+	setField(s.field, reflect.ValueOf(t))
+	return nil
+}
+
+type idScanner struct{ field reflect.Value }
+
+func (s idScanner) Scan(src any) error {
+	if src == nil || src == "" || (isEmptyBytes(src)) {
+		if s.field.Kind() == reflect.Pointer {
+			s.field.SetZero()
+			return nil
+		}
+		setField(s.field, reflect.ValueOf(id.UUID{}))
+		return nil
+	}
+	u, e := uuidFrom(src)
+	if e != nil {
+		return e
+	}
+	setField(s.field, reflect.ValueOf(u))
+	return nil
+}
+
+func isEmptyBytes(src any) bool {
+	b, ok := src.([]byte)
+	return ok && len(b) == 0
+}
+
+func setField(field, value reflect.Value) {
+	for field.Kind() == reflect.Pointer {
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		field = field.Elem()
+	}
+	field.Set(value)
+}
+
+func timeFrom(src any) (time.Time, error) {
+	switch v := src.(type) {
+	case time.Time:
+		return v, nil
+	case string:
+		return parseTime(v)
+	case []byte:
+		return parseTime(string(v))
+	default:
+		return time.Time{}, fmt.Errorf("database: unsupported time source %T", src)
+	}
+}
+
+func parseTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		"2006-01-02 15:04:05.999999999Z07:00",
+		"2006-01-02 15:04:05Z07:00",
+	} {
+		if t, e := time.Parse(layout, s); e == nil {
+			return t, nil
+		}
+	}
+	for _, layout := range []string{
+		"2006-01-02 15:04:05.999999999",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	} {
+		if t, e := time.ParseInLocation(layout, s, time.UTC); e == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, errors.New("database: invalid time")
+}
+
+func uuidFrom(src any) (id.UUID, error) {
+	switch v := src.(type) {
+	case id.UUID:
+		return v, nil
+	case []byte:
+		if len(v) == len(id.UUID{}) {
+			var u id.UUID
+			copy(u[:], v)
+			return u, nil
+		}
+		return parseUUID(string(v))
+	case string:
+		return parseUUID(v)
+	default:
+		return id.UUID{}, fmt.Errorf("database: unsupported UUID source %T", src)
+	}
+}
+
+func parseUUID(s string) (id.UUID, error) {
+	u, e := id.Parse(strings.TrimSpace(s))
+	if e != nil {
+		return id.UUID{}, errors.New("database: invalid UUID")
+	}
+	return u, nil
 }
 
 type jsonField struct{ destination any }

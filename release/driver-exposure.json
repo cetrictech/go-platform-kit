@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "driver_import_prefixes": [
+    "github.com/IBM/sarama",
+    "github.com/go-sql-driver/mysql",
+    "github.com/golang-jwt/jwt",
+    "github.com/jackc/pgx",
+    "github.com/redis/go-redis",
+    "github.com/spiffe/go-spiffe",
+    "github.com/twmb/franz-go",
+    "go.opentelemetry.io",
+    "google.golang.org/genproto",
+    "google.golang.org/grpc",
+    "google.golang.org/protobuf"
+  ],
+  "approved": {
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.ConsumeGroup": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.Native": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.Pipeline": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.Stats": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.Transaction": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.Watch": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.XAutoClaim": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.XClaim": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.XPending": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.XRead": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.XReadGroup": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Client.ZAdd": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Pending": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.PoolStats": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.ScoredMember": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.Stream": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/cache/redis.StreamMessage": [
+      "github.com/redis/go-redis/v9"
+    ],
+    "github.com/cetrictech/go-platform-kit/database/postgres.Client.Native": [
+      "github.com/jackc/pgx/v5/pgxpool"
+    ],
+    "github.com/cetrictech/go-platform-kit/database/postgres.Tx.Native": [
+      "github.com/jackc/pgx/v5"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Authentication": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Authorize": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig": [
+      "google.golang.org/grpc",
+      "google.golang.org/grpc/credentials",
+      "google.golang.org/grpc/keepalive",
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.Credentials": [
+      "google.golang.org/grpc/credentials"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.Keepalive": [
+      "google.golang.org/grpc/keepalive"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.Options": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.StatsHandler": [
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.Stream": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ClientConfig.Unary": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Deadline": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Logging": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.NewClient": [
+      "google.golang.org/grpc",
+      "google.golang.org/grpc/credentials",
+      "google.golang.org/grpc/keepalive",
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.NewServer": [
+      "google.golang.org/grpc",
+      "google.golang.org/grpc/credentials",
+      "google.golang.org/grpc/health",
+      "google.golang.org/grpc/keepalive",
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.RateLimit": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Recovery": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.RequestIDs": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Server": [
+      "google.golang.org/grpc",
+      "google.golang.org/grpc/health"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Server.GRPC": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Server.Health": [
+      "google.golang.org/grpc/health"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig": [
+      "google.golang.org/grpc",
+      "google.golang.org/grpc/credentials",
+      "google.golang.org/grpc/keepalive",
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.Credentials": [
+      "google.golang.org/grpc/credentials"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.Keepalive": [
+      "google.golang.org/grpc/keepalive"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.KeepalivePolicy": [
+      "google.golang.org/grpc/keepalive"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.Options": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.StatsHandler": [
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.Stream": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.ServerConfig.Unary": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamAuthentication": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamAuthorize": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamClientDeadline": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamDeadline": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamMessageRateLimit": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamRateLimit": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamRecovery": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.StreamRequestIDs": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/grpcx.Translate": [
+      "google.golang.org/grpc"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.Config": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.Config.NativeOptions": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.Consumer.Native": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.NewAdmin": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.NewConsumer": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.NewProducer": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/franz.Producer.Native": [
+      "github.com/twmb/franz-go/pkg/kgo"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama.Config": [
+      "github.com/IBM/sarama"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama.Config.NativeConfig": [
+      "github.com/IBM/sarama"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama.NewAdmin": [
+      "github.com/IBM/sarama"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama.NewConsumer": [
+      "github.com/IBM/sarama"
+    ],
+    "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama.NewProducer": [
+      "github.com/IBM/sarama"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Config": [
+      "go.opentelemetry.io/otel/sdk/metric",
+      "go.opentelemetry.io/otel/sdk/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Config.MetricReader": [
+      "go.opentelemetry.io/otel/sdk/metric"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Config.TraceExporter": [
+      "go.opentelemetry.io/otel/sdk/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Consumer": [
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.GRPC": [
+      "go.opentelemetry.io/otel/metric",
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/trace",
+      "google.golang.org/grpc/stats"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.HTTP": [
+      "go.opentelemetry.io/otel/metric",
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Hook": [
+      "go.opentelemetry.io/otel/metric",
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.New": [
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/sdk/metric",
+      "go.opentelemetry.io/otel/sdk/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Producer": [
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Producer.Propagation": [
+      "go.opentelemetry.io/otel/propagation"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Producer.Tracer": [
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Providers": [
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/sdk/metric",
+      "go.opentelemetry.io/otel/sdk/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Providers.Metrics": [
+      "go.opentelemetry.io/otel/sdk/metric"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Providers.Propagation": [
+      "go.opentelemetry.io/otel/propagation"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Providers.Traces": [
+      "go.opentelemetry.io/otel/sdk/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Transport": [
+      "go.opentelemetry.io/otel/propagation",
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Transport.Propagation": [
+      "go.opentelemetry.io/otel/propagation"
+    ],
+    "github.com/cetrictech/go-platform-kit/observability.Transport.Tracer": [
+      "go.opentelemetry.io/otel/trace"
+    ],
+    "github.com/cetrictech/go-platform-kit/spiffe.Source.GetX509SVID": [
+      "github.com/spiffe/go-spiffe/v2/svid/x509svid"
+    ]
+  }
+}

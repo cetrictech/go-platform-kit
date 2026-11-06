@@ -1,4 +1,4 @@
-.PHONY: test race vet tidy fmt check-fmt staticcheck vuln integration services services-down bench coverage verify
+.PHONY: test race vet tidy fmt check-fmt staticcheck vuln integration services services-down bench coverage verify api api-surface independent gates faults performance release-check
 
 test:
 	./scripts/modules.sh go test ./...
@@ -28,4 +28,20 @@ bench:
 	./scripts/modules.sh go test -run='^$$' -bench=. -benchmem ./...
 coverage:
 	./scripts/modules.sh go test -cover ./...
-verify: check-fmt vet test race staticcheck vuln
+verify: check-fmt gates api api-surface vet test race staticcheck vuln independent
+
+api:
+	./scripts/check-api.sh
+api-surface:
+	./scripts/check-api-surface.sh
+independent:
+	./scripts/check-independent.sh
+faults:
+	./scripts/fault-integration.sh
+performance:
+	./scripts/check-performance.sh
+gates:
+	python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+	python3 -m unittest discover -s scripts -p 'test_check_*.py' -v
+release-check:
+	./scripts/release-check.sh

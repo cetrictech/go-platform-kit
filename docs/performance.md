@@ -1,13 +1,37 @@
 # Performance
 
-`make bench` runs reproducible local benchmarks with allocation reporting, independently for every module. For stable comparisons, record CPU, OS, Go version, GOMAXPROCS, commit and benchstat results; repeat with `-count=10` on an idle host. Current microbenchmarks cover JSON logging, serialization and signed cursor encoding. Infrastructure latency must be measured separately using provisioned services.
+`make bench` runs local Go benchmarks with allocation reporting independently for every module. Core benchmarks cover logging, JSON serialization, error construction, cached SQL struct scanning, Kafka handler processing, signed cursor encoding and HTTP response serialization. Infrastructure round-trip benchmarks are separate because they include network, broker/server and container latency.
 
-Struct scanning uses safe reflection and currently rebuilds a field map per row. This favors straightforward correctness over optimal allocation behavior; profile before adding schema caches. Atomic JSON responses buffer up to the configured output bound, while encoding itself may allocate proportional to its input. Avoid large envelope payloads and use native streaming when appropriate. Kafka batching and pool sizing should be load-tested against actual brokers/databases.
+Use the [performance regression gate](performance-regressions.md) for controlled comparisons. Its runner collects ten 200ms samples per core case, fixes GOMAXPROCS to 2, and records CPU, OS, architecture, Go version, source commit and working-tree state. The gate compares repeated medians and allocation counts, checks dispersion, and rejects missing cases or ineligible environments. CI collects base and candidate commits on the same runner; the committed local Darwin snapshot is reference evidence, not a Linux CI baseline or release authorization.
 
-Not all requested database/Redis/Kafka network benchmarks are included yet; do not infer throughput guarantees from core microbenchmarks.
+```sh
+./scripts/benchmark-run.sh /tmp/sdk-current-bench
+python3 scripts/check-benchmarks.py \
+  --input /tmp/sdk-current-bench/benchmarks.log \
+  --metadata /tmp/sdk-current-bench/metadata.json \
+  --baseline benchmarks/core-darwin-arm64-go1.27.3.json
+```
 
-Additional microbenchmarks cover error construction, HTTP envelope encoding and shared SQL struct scanning. Tagged Redis and Kafka producer round-trip benchmarks require REDIS_ADDRESS / KAFKA_BROKER and measure service latency separately. Kafka consumer throughput and broad deployment load benchmarks remain qualification work.
+Use an idle machine. Release evidence additionally requires `--release`, a clean source tree at the exact release commit, and a compatible reviewed baseline. Investigate ns/op, bytes/op or allocations/op regressions with CPU and allocation profiles before updating any baseline. A changed or noisy environment is a failed qualification check, not permission to substitute unrelated numbers.
 
-A profiling pass on the Apple M3 Pro/Go 1.27.3 validation host found per-attribute construction of a strings.Replacer in secret-field normalization. Replacing that construction reduced the JSON logging microbenchmark from approximately 27,103 B/op and 22 allocations/op to 72 B/op and 6 allocations/op, with the repeated post-change runs around 1.4 microseconds/op. This is a local observation, not a throughput guarantee. Recorded core and Docker round-trip results are in validation/benchmarks.log and validation/network-benchmarks.log. Network results include Docker transport and broker/server work and must not be interpreted as SDK overhead alone.
+The SQL scanner uses safe reflection with a concurrency-safe metadata cache; it handles exported embedded pointer structs and JSON fields. Allocation costs still depend on destination types and row schemas. Atomic JSON responses buffer up to the configured bound, while serialization may allocate in proportion to the value being encoded. Avoid large envelope payloads and use native streaming when appropriate. Kafka batching and connection pools require separate capacity tests against the intended deployment.
 
-Real-network follow-up benchmarks: `POSTGRES_URL='postgres://postgres:sdk-test-only@127.0.0.1:15432/sdk?sslmode=disable' KAFKA_BROKER=127.0.0.1:19092 GOWORK=off go -C integration test -tags=integration -run '^$' -bench . -benchtime=100x -benchmem`. These include local container/network latency and are distinct from root scanning/codec/consumer-processing overhead benchmarks. Adapter integration benchmark files also provide Redis and Kafka round-trip benchmarks with their corresponding environment variables.
+The original profiling pass on Apple M3 Pro/Go 1.27.3 identified repeated strings.Replacer construction in secret-field normalization. Removing it reduced the measured logging allocation count. That historical comparison is recorded in validation logs; current repeated evidence and source/environment metadata are in `benchmarks/core-darwin-arm64-go1.27.3.json`. These measurements are not throughput guarantees.
+
+Real services are required for network benchmarks:
+
+```sh
+make services
+REDIS_ADDRESS=127.0.0.1:16379 GOWORK=off go -C cache/redis test \
+  -tags=integration -run '^$' -bench . -benchtime=100x -benchmem
+KAFKA_BROKER=127.0.0.1:19092 GOWORK=off go -C messaging/kafka/franz test \
+  -tags=integration -run '^$' -bench . -benchtime=100x -benchmem
+KAFKA_BROKER=127.0.0.1:19092 GOWORK=off go -C messaging/kafka/sarama test \
+  -tags=integration -run '^$' -bench . -benchtime=100x -benchmem
+POSTGRES_URL='postgres://postgres:sdk-test-only@127.0.0.1:15432/sdk?sslmode=disable' \
+KAFKA_BROKER=127.0.0.1:19092 GOWORK=off go -C integration test \
+  -tags=integration -run '^$' -bench . -benchtime=100x -benchmem
+make services-down
+```
+
+The core Kafka consumer benchmark measures handler-wrapper overhead. Real broker throughput, multi-consumer group load, sustained memory pressure and production capacity require deployment-specific load tests beyond that microbenchmark. Current network results are recorded in [validation/network-benchmarks.log](validation/network-benchmarks.log).

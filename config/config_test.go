@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cetrictech/go-platform-kit/id"
 )
 
 func TestLoadAtomic(t *testing.T) {
@@ -89,6 +91,52 @@ func TestProfilesProgrammaticAndStandaloneValidation(t *testing.T) {
 		t.Fatal("standalone required validation skipped")
 	}
 }
+func TestTimeAndIDUnmarshal(t *testing.T) {
+	user := "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+	other := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+	var c struct {
+		Created time.Time  `default:"2026-11-05T00:00:00Z"`
+		When    *time.Time `env:"WHEN"`
+		Times   []time.Time
+		User    id.UUID `default:"f47ac10b-58cc-4372-a567-0e02b2c3d479"`
+		Owner   *id.UUID
+		IDs     []id.UUID
+	}
+	if e := Load(&c, Options{File: strings.NewReader(`{"Owner":"` + other + `"}`), Lookup: func(k string) (string, bool) {
+		switch k {
+		case "WHEN":
+			return "2026-11-05 15:04:05", true
+		case "TIMES":
+			return "2026-11-05,2026-11-06T00:00:00Z", true
+		case "IDS":
+			return user + "," + other, true
+		default:
+			return "", false
+		}
+	}}); e != nil {
+		t.Fatal(e)
+	}
+	wantCreated := time.Date(2026, 11, 5, 0, 0, 0, 0, time.UTC)
+	wantWhen := time.Date(2026, 11, 5, 15, 4, 5, 0, time.UTC)
+	wantUser, e := id.Parse(user)
+	if e != nil || !c.Created.Equal(wantCreated) || c.When == nil || !c.When.Equal(wantWhen) || len(c.Times) != 2 || !c.Times[0].Equal(wantCreated) {
+		t.Fatal(c, e)
+	}
+	wantOther, e := id.Parse(other)
+	if e != nil || c.User != wantUser || c.Owner == nil || *c.Owner != wantOther || len(c.IDs) != 2 || c.IDs[1] != wantOther {
+		t.Fatal(c, e)
+	}
+	kept := c.Created
+	if e = Load(&c, Options{Lookup: func(k string) (string, bool) {
+		if k == "CREATED" || k == "USER" {
+			return "bad", true
+		}
+		return "", false
+	}}); e == nil || !c.Created.Equal(kept) || c.User != wantUser {
+		t.Fatal(c, e)
+	}
+}
+
 func TestConfigCycleAndSizeFailAtomically(t *testing.T) {
 	c := struct{ Data map[string]any }{Data: map[string]any{}}
 	c.Data["self"] = c.Data

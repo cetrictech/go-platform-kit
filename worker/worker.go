@@ -22,7 +22,8 @@ type Config struct {
 	Observer           instrument.Hook
 }
 
-// Stats includes finished jobs (Completed), outcome counts and current active/queued work. Panics counts recovered attempts.
+// Stats includes finished jobs (Completed), including accepted jobs canceled before
+// execution, outcome counts and current active/queued work. Panics counts recovered attempts.
 type Stats struct {
 	Submitted, Started, Completed, Succeeded, Failed, Panics, Active int64
 	Queued                                                           int
@@ -75,12 +76,33 @@ func NewWithConfig(ctx context.Context, c Config) (*Pool, error) {
 		p.wg.Add(1)
 		go p.run()
 	}
-	go func() { p.wg.Wait(); close(p.finished) }()
+	go func() {
+		p.wg.Wait()
+		// Cancellation can stop workers while accepted closures remain buffered.
+		// Finish admission first, then release every queued context/job reference.
+		p.closeAdmission()
+		cancellation := p.ctx.Err()
+		if cancellation == nil {
+			cancellation = context.Canceled
+		}
+		for range p.jobs {
+			p.metrics.failed.Add(1)
+			p.metrics.completed.Add(1)
+			p.config.Report(cancellation)
+		}
+		p.mu.Lock()
+		clear(p.registered)
+		p.mu.Unlock()
+		close(p.finished)
+	}()
 	return p, nil
 }
 func (p *Pool) run() {
 	defer p.wg.Done()
 	for {
+		if p.ctx.Err() != nil {
+			return
+		}
 		select {
 		case <-p.ctx.Done():
 			return
@@ -195,15 +217,11 @@ func (p *Pool) Submit(ctx context.Context, job Job) error {
 }
 
 // Shutdown stops admission and drains accepted work; on deadline it cancels running work and returns immediately.
-// Handlers must honor cancellation. Repeated calls can wait on the same cleanup completion without creating extra wait goroutines.
+// Unstarted work canceled by the pool is discarded and reported with its context error.
+// Handlers and Report must honor their documented contracts. Repeated calls wait
+// on the same cleanup completion without creating extra wait goroutines.
 func (p *Pool) Shutdown(ctx context.Context) error {
-	p.once.Do(func() { close(p.closing) })
-	p.mu.Lock()
-	if !p.closed {
-		p.closed = true
-		close(p.jobs)
-	}
-	p.mu.Unlock()
+	p.closeAdmission()
 	select {
 	case <-p.finished:
 		p.cancel()
@@ -212,6 +230,18 @@ func (p *Pool) Shutdown(ctx context.Context) error {
 		p.cancel()
 		return ctx.Err()
 	}
+}
+
+// closeAdmission wakes blocked submitters before waiting for their read locks.
+// It is shared by explicit shutdown and cancellation cleanup after workers exit.
+func (p *Pool) closeAdmission() {
+	p.once.Do(func() { close(p.closing) })
+	p.mu.Lock()
+	if !p.closed {
+		p.closed = true
+		close(p.jobs)
+	}
+	p.mu.Unlock()
 }
 
 // Cancel requests immediate cancellation. Shutdown can subsequently await actual worker termination.

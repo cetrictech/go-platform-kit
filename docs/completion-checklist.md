@@ -13,7 +13,7 @@ This checklist tracks the follow-up implementation against the original request.
 - [x] Durable idempotency: PostgreSQL ownership/state transitions with explicit schema and concurrency/expiry tests.
 - [x] Observability: injected trace/metric providers, OTLP receiver export test, adapter correlation, resilience/worker metrics and shutdown.
 - [x] Health/lifecycle: timeout/parallel checks, resources, worker draining, signal opt-in, partial-start failure and cleanup.
-- [x] Optional integrations: preserve independent dependency boundaries; object storage design remains explicit unless implemented and tested.
+- [x] Optional integrations: preserve independent dependency boundaries; object storage is an isolated module with streaming, multipart abort, checksum, metadata and bounded presign tests.
 - [x] Quality: meaningful boundary/unit and real-service fault tests, infrastructure benchmarks, stable dependency versions, race/vet/static/vulnerability scans.
 - [x] CI/docs/release: complete matrix, clean consumer verification, reproducible commands and accurate current validation record; no tags/publication.
 

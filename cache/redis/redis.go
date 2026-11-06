@@ -9,6 +9,7 @@ import (
 	"github.com/cetrictech/go-platform-kit/instrument"
 	"github.com/cetrictech/go-platform-kit/security"
 	r "github.com/redis/go-redis/v9"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -19,16 +20,21 @@ var ErrOwnership = errors.New("redis: lock ownership lost")
 
 // Config contains explicit constructor settings; see package documentation for defaults.
 type Config struct {
-	Mode                                         Mode
-	SentinelUsername, SentinelPassword           string
-	AllowPlaintext                               bool
-	Observer                                     instrument.Hook
-	Addresses                                    []string
-	MasterName, Username, Password, Prefix       string
-	DB, PoolSize, MinIdleConnections, MaxRetries int
-	DialTimeout, ReadTimeout, WriteTimeout       time.Duration
-	TLS                                          *tls.Config
-	Serializer                                   encodingx.Serializer
+	Mode                                   Mode
+	SentinelUsername, SentinelPassword     string
+	AllowPlaintext                         bool
+	Observer                               instrument.Hook
+	Addresses                              []string
+	MasterName, Username, Password, Prefix string
+	DB                                     int
+	// PoolSize is the hard command-connection bound per Redis node. Zero uses
+	// 10*GOMAXPROCS, matching the native base size. Pipelines share this pool;
+	// dedicated subscriptions are separately owned and must be closed by callers.
+	PoolSize                               int
+	MinIdleConnections, MaxRetries         int
+	DialTimeout, ReadTimeout, WriteTimeout time.Duration
+	TLS                                    *tls.Config
+	Serializer                             encodingx.Serializer
 }
 
 // Client owns its configured infrastructure client and supports concurrent operations.
@@ -42,6 +48,12 @@ type Client struct {
 func New(ctx context.Context, c Config) (*Client, error) {
 	if len(c.Addresses) == 0 || c.PoolSize < 0 || c.DB < 0 || c.MinIdleConnections < 0 || c.DialTimeout < 0 || c.ReadTimeout < 0 || c.WriteTimeout < 0 || c.MaxRetries < -1 {
 		return nil, errors.New("redis: invalid config")
+	}
+	if c.PoolSize == 0 {
+		c.PoolSize = 10 * runtime.GOMAXPROCS(0)
+	}
+	if c.MinIdleConnections > c.PoolSize {
+		return nil, errors.New("redis: minimum idle connections exceed pool bound")
 	}
 	for _, a := range c.Addresses {
 		if strings.TrimSpace(a) == "" {
@@ -80,7 +92,7 @@ func New(ctx context.Context, c Config) (*Client, error) {
 	if c.TLS == nil && !c.AllowPlaintext {
 		return nil, errors.New("redis: TLS required; explicitly opt into plaintext for local development")
 	}
-	o := &r.UniversalOptions{SentinelUsername: c.SentinelUsername, SentinelPassword: c.SentinelPassword, ContextTimeoutEnabled: true, Addrs: append([]string(nil), c.Addresses...), MasterName: c.MasterName, Username: c.Username, Password: c.Password, DB: c.DB, PoolSize: c.PoolSize, MinIdleConns: c.MinIdleConnections, MaxRetries: c.MaxRetries, DialTimeout: c.DialTimeout, ReadTimeout: c.ReadTimeout, WriteTimeout: c.WriteTimeout}
+	o := &r.UniversalOptions{SentinelUsername: c.SentinelUsername, SentinelPassword: c.SentinelPassword, ContextTimeoutEnabled: true, Addrs: append([]string(nil), c.Addresses...), MasterName: c.MasterName, Username: c.Username, Password: c.Password, DB: c.DB, PoolSize: c.PoolSize, MaxActiveConns: c.PoolSize, MaxIdleConns: c.PoolSize, PipelinePoolSize: -1, MinIdleConns: c.MinIdleConnections, MaxRetries: c.MaxRetries, DialTimeout: c.DialTimeout, ReadTimeout: c.ReadTimeout, WriteTimeout: c.WriteTimeout}
 	if c.TLS != nil {
 		o.TLSConfig = c.TLS.Clone()
 	}

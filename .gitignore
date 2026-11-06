@@ -32,3 +32,8 @@ profile.cov
 
 # Generated, ephemeral local TLS fixture material
 integration/.runtime/
+
+# Local validation tools and candidate evidence
+.cache/
+__pycache__/
+*.pyc

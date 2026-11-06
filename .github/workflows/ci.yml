@@ -2,6 +2,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -14,15 +15,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v7.0.0
         with:
           go-version: ${{ matrix.go }}
           cache-dependency-path: '**/go.sum'
-      - run: make check-fmt
+      - run: make check-fmt gates
       - run: make vet test race coverage
       - run: ./scripts/modules.sh go build ./...
       - run: ./scripts/check-docs.sh
-      - run: ./scripts/check-consumer.sh
+      - run: ./scripts/check-independent.sh --online
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: '**/go.sum'
+      - run: ./scripts/install-api-tool.sh
+      - run: make api api-surface
+      - run: python3 scripts/sdk_release.py metadata
   analysis:
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +52,7 @@ jobs:
       - run: make staticcheck vuln
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-go@v7.0.0
@@ -44,10 +60,33 @@ jobs:
           go-version: '1.27.x'
           cache-dependency-path: '**/go.sum'
       - run: make services
-      - run: make integration
+      - run: make integration faults
       - if: always()
         run: |
           docker compose -f integration/compose.yaml logs --no-color
           GPK_TLS_DIR="$PWD/integration/.runtime/certs" docker compose -f integration/extended-compose.yaml logs --no-color
       - if: always()
         run: make services-down
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.27.3'
+          cache-dependency-path: '**/go.sum'
+      - name: Compare repeated core samples on one runner
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE_REF" || "$BASE_REF" =~ ^0+$ ]]; then
+            BASE_REF=$(python3 -c 'import json;print(json.load(open("release/modules.json"))["bootstrap_ref"])')
+          fi
+          ./scripts/check-performance.sh "$BASE_REF"
+      - if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: performance-evidence
+          path: .cache/performance/

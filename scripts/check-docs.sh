@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-for doc in architecture modules configuration logging errors http pagination postgres mysql redis kafka kafka-sarama kafka-franz grpc spiffe security jwt observability health retries idempotency testing performance versioning migration-guide implementation-status validation dependencies; do
+for doc in README library architecture modules configuration logging errors http pagination postgres mysql redis kafka kafka-sarama kafka-franz grpc spiffe security jwt observability health retries idempotency testing performance versioning migration-guide implementation-status validation dependencies public-api-contracts support-policy dependency-policy compatibility-matrix deprecations performance-regressions; do
   test -s "docs/$doc.md"
 done
 python3 - <<'PY'

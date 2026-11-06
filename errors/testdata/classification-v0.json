@@ -1,0 +1,9 @@
+{
+  "not_found":{"http_status":404,"public":{"code":"NOT_FOUND","message":"The requested resource was not found.","category":"NOT_FOUND","severity":"ERROR"}},
+  "timeout":{"http_status":504,"public":{"code":"TIMEOUT","message":"We could not complete your request.","category":"TIMEOUT","severity":"ERROR","retryable":true}},
+  "canceled":{"http_status":408,"public":{"code":"CANCELED","message":"We could not complete your request.","category":"NETWORK","severity":"ERROR"}},
+  "network_timeout":{"http_status":503,"public":{"code":"NETWORK_ERROR","message":"We could not complete your request.","category":"NETWORK","severity":"ERROR","retryable":true}},
+  "network_failure":{"http_status":503,"public":{"code":"NETWORK_ERROR","message":"We could not complete your request.","category":"NETWORK","severity":"ERROR"}},
+  "unknown":{"http_status":500,"public":{"code":"INTERNAL_ERROR","message":"We could not complete your request.","category":"INTERNAL","severity":"ERROR"}},
+  "application":{"http_status":409,"public":{"code":"ORDER_CONFLICT","message":"Approved public message","category":"CONFLICT","severity":"WARNING","details":{"field":"version"},"retryable":true}}
+}

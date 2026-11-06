@@ -1,6 +1,6 @@
 # Redis
 
-New accepts Addresses, MasterName for Sentinel, authentication, TLS, pool/timeouts and Serializer. One address without MasterName selects standalone; multiple addresses select cluster through go-redis UniversalClient. Ping runs before return. Close releases the client. Nil values return ErrNotFound. Observer instruments connection/command/pipeline operations with fixed operation names.
+New accepts Addresses, MasterName for Sentinel, authentication, TLS, pool/timeouts and Serializer. A zero PoolSize selects 10*GOMAXPROCS connections per node. That value is also the hard command and pipeline limit; subscriptions use separate connections that the caller must close. One address without MasterName selects standalone; multiple addresses select cluster through go-redis UniversalClient. Ping runs before return. Close releases the client. Nil values return ErrNotFound. Observer instruments connection/command/pipeline operations with fixed operation names.
 
 Core strings, JSON, hashes, lists, sets, sorted sets, streams and pub/sub methods use an explicit Prefix. Multi-key operations prefix every key. Redis Cluster scripts require keys in one hash slot; put a developer-controlled `{tag}` in logical keys when needed. Stream reads should use bounded block durations during shutdown. Acknowledge only after successful processing. XAutoClaim recovers pending entries; operators choose the minimum idle time.
 

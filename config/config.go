@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cetrictech/go-platform-kit/id"
 	redaction "github.com/cetrictech/go-platform-kit/internal/redact"
 	"io"
 	"net/url"
@@ -211,6 +212,22 @@ func convert(v reflect.Value, s string) error {
 		v.Set(reflect.New(v.Type().Elem()))
 		return convert(v.Elem(), s)
 	}
+	if v.Type() == reflect.TypeFor[time.Time]() {
+		t, e := parseTime(s)
+		if e != nil {
+			return e
+		}
+		v.Set(reflect.ValueOf(t))
+		return nil
+	}
+	if v.Type() == reflect.TypeFor[id.UUID]() {
+		u, e := id.Parse(strings.TrimSpace(s))
+		if e != nil {
+			return e
+		}
+		v.Set(reflect.ValueOf(u))
+		return nil
+	}
 	if v.CanAddr() {
 		if u, ok := v.Addr().Interface().(encoding.TextUnmarshaler); ok {
 			return u.UnmarshalText([]byte(s))
@@ -365,6 +382,29 @@ func GetBool(k string, f bool) bool {
 }
 
 // GetDuration parses an environment duration, returning the fallback on invalid input.
+func parseTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		"2006-01-02 15:04:05.999999999Z07:00",
+		"2006-01-02 15:04:05Z07:00",
+	} {
+		if t, e := time.Parse(layout, s); e == nil {
+			return t, nil
+		}
+	}
+	for _, layout := range []string{
+		"2006-01-02 15:04:05.999999999",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	} {
+		if t, e := time.ParseInLocation(layout, s, time.UTC); e == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, errors.New("invalid time")
+}
+
 func GetDuration(k string, f time.Duration) time.Duration {
 	v, e := time.ParseDuration(os.Getenv(k))
 	if e != nil {

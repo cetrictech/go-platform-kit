@@ -149,3 +149,90 @@ func TestRejectPolicy(t *testing.T) {
 		t.Fatal("invalid SPIFFE ID")
 	}
 }
+
+func TestMissingSocket(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.sock")
+	_, e := New(context.Background(), Config{Socket: "unix://" + path, TrustDomain: "test.internal", ExpectedID: "spiffe://test.internal/service", AllowTrustDomain: true, Timeout: 50 * time.Millisecond})
+	if e == nil {
+		t.Fatal("missing socket accepted")
+	}
+}
+
+func TestFromEnv(t *testing.T) {
+	t.Setenv("GRPC_SECURITY_MODE", "")
+	if _, enabled, e := FromEnv(); e != nil || enabled {
+		t.Fatalf("disabled: %v %v", enabled, e)
+	}
+	t.Setenv("GRPC_SECURITY_MODE", "spire")
+	t.Setenv("SPIFFE_TRUST_DOMAIN", "darena.internal")
+	t.Setenv("SPIFFE_ID", "spiffe://darena.internal/prod/cl_identity")
+	t.Setenv("APP_SPIFFE_ALLOWED_IDS", "spiffe://darena.internal/prod/cl_authorization")
+	c, enabled, e := FromEnv()
+	if e != nil || !enabled {
+		t.Fatal(e)
+	}
+	if c.Socket != defaultSocket || c.ExpectedID != "spiffe://darena.internal/prod/cl_identity" || c.AllowTrustDomain || len(c.AllowedPeers) != 1 {
+		t.Fatalf("%+v", c)
+	}
+	t.Setenv("APP_SPIFFE_ALLOWED_IDS", "")
+	c, enabled, e = FromEnv()
+	if e != nil || !enabled || !c.AllowTrustDomain || len(c.AllowedPeers) != 0 {
+		t.Fatalf("%+v %v %v", c, enabled, e)
+	}
+	t.Setenv("GRPC_SECURITY_MODE", "mtls")
+	if _, _, e = FromEnv(); e == nil {
+		t.Fatal("invalid mode accepted")
+	}
+}
+
+func TestTrustDomainPeers(t *testing.T) {
+	key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if e != nil {
+		t.Fatal(e)
+	}
+	ca := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "test"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign}
+	der, e := x509.CreateCertificate(rand.Reader, ca, ca, &key.PublicKey, key)
+	if e != nil {
+		t.Fatal(e)
+	}
+	ca, e = x509.ParseCertificate(der)
+	if e != nil {
+		t.Fatal(e)
+	}
+	k, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if e != nil {
+		t.Fatal(e)
+	}
+	uri, _ := url.Parse("spiffe://test.internal/service")
+	leaf := &x509.Certificate{SerialNumber: big.NewInt(2), URIs: []*url.URL{uri}, NotBefore: time.Now().Add(-time.Minute), NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth}, BasicConstraintsValid: true}
+	cert, e := x509.CreateCertificate(rand.Reader, leaf, ca, &k.PublicKey, key)
+	if e != nil {
+		t.Fatal(e)
+	}
+	pk, e := x509.MarshalPKCS8PrivateKey(k)
+	if e != nil {
+		t.Fatal(e)
+	}
+	sock := filepath.Join(t.TempDir(), "agent.sock")
+	l, e := net.Listen("unix", sock)
+	if e != nil {
+		t.Fatal(e)
+	}
+	g := grpc.NewServer()
+	pb.RegisterSpiffeWorkloadAPIServer(g, &workload{initial: &pb.X509SVIDResponse{Svids: []*pb.X509SVID{{SpiffeId: uri.String(), X509Svid: cert, X509SvidKey: pk, Bundle: der}}}, rotate: make(chan *pb.X509SVIDResponse)})
+	go g.Serve(l)
+	defer g.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	s, e := New(ctx, Config{Socket: "unix://" + sock, TrustDomain: "test.internal", ExpectedID: "spiffe://test.internal/service", AllowTrustDomain: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	if !s.Allows("spiffe://test.internal/other") || s.Allows("spiffe://other.internal/service") {
+		t.Fatal("trust-domain policy")
+	}
+	if id, e := s.Identity(); e != nil || id != "spiffe://test.internal/service" {
+		t.Fatal(id, e)
+	}
+}

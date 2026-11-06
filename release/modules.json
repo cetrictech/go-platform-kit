@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "bootstrap_ref": "1a547568e731a76f9b388f05e044da3c90edae0d",
+  "minimum_go": "1.26.0",
+  "supported_go": [
+    "1.26",
+    "1.27"
+  ],
+  "modules": [
+    {
+      "directory": ".",
+      "path": "github.com/cetrictech/go-platform-kit",
+      "version": "v0.1.0",
+      "core": null,
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "database/postgres",
+      "path": "github.com/cetrictech/go-platform-kit/database/postgres",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "database/mysql",
+      "path": "github.com/cetrictech/go-platform-kit/database/mysql",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "cache/redis",
+      "path": "github.com/cetrictech/go-platform-kit/cache/redis",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "messaging/kafka/franz",
+      "path": "github.com/cetrictech/go-platform-kit/messaging/kafka/franz",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "messaging/kafka/sarama",
+      "path": "github.com/cetrictech/go-platform-kit/messaging/kafka/sarama",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "grpcx",
+      "path": "github.com/cetrictech/go-platform-kit/grpcx",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "spiffe",
+      "path": "github.com/cetrictech/go-platform-kit/spiffe",
+      "version": "v0.1.0",
+      "core": null,
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "observability",
+      "path": "github.com/cetrictech/go-platform-kit/observability",
+      "version": "v0.1.0",
+      "core": "v0.1.0",
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "security/jwt",
+      "path": "github.com/cetrictech/go-platform-kit/security/jwt",
+      "version": "v0.1.0",
+      "core": null,
+      "contracts": "docs/public-api-contracts.md"
+    },
+    {
+      "directory": "storage/s3",
+      "path": "github.com/cetrictech/go-platform-kit/storage/s3",
+      "version": "v0.1.0",
+      "core": null,
+      "contracts": "docs/public-api-contracts.md"
+    }
+  ]
+}
